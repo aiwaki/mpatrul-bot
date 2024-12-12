@@ -1,3 +1,4 @@
-import { Telegraf } from 'telegraf'
 
-export const bot = new Telegraf(process.env.BOT_TOKEN as string)
+import { Scenes, Telegraf } from 'telegraf'
+
+export const bot = new Telegraf<Scenes.WizardContext>(process.env.BOT_TOKEN as string)
