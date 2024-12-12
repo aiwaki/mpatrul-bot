@@ -1,4 +1,4 @@
-import { bot } from './client.js'
+import { bot } from './client.ts'
 
 bot.telegram.setMyCommands([
     {
@@ -14,7 +14,19 @@ bot.telegram.setMyCommands([
         description: 'Карточка волонтера',
     },
     {
-        command: '/create',
-        description: 'Проверить ссылку и отправить отчет',
+        command: '/link',
+        description: 'Проверить ссылку',
+    },
+    {
+        command: '/report',
+        description: 'Отправить отчет',
     },
 ])
+
+const commands = ["signin", "me", "link", "report"];
+
+commands.forEach((command) => {
+    bot.command(command, async (ctx) => {
+        await ctx.scene.enter(command);
+    });
+});
