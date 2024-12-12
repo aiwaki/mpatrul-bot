@@ -1,6 +1,7 @@
-import { bot } from './client.js'
-import './commands.js'
-import './start.js'
+import { bot } from './client.ts'
+import './scenes.ts'
+import './commands.ts'
+import './start.ts'
 
 bot.launch()
 
