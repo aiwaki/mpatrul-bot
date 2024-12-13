@@ -1,6 +1,7 @@
-import { Composer, Scenes, Markup } from 'telegraf';
+import { Scenes, Markup } from 'telegraf';
+import { fmt, link } from 'telegraf/format';
 import { apiClient } from '../../mpatrul/client.ts';
-import { fetchLogin, fetchPassword, hasToken, updateLogin, updatePassword, updateToken } from '../../database/api.ts';
+import { fetchLogin, fetchPassword, fetchToken, updateLogin, updatePassword, updateToken } from '../../database/api.ts';
 
 export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     'signin',
@@ -8,12 +9,24 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
         try {
             const chatId = ctx.chat?.id;
             if (!chatId) {
-                await ctx.reply('❌ Не удалось определить идентификатор чата.');
+                await ctx.sendChatAction('typing');
+                await ctx.reply('⚠️ Не удалось определить идентификатор чата.');
                 return ctx.scene.leave();
             }
 
-            const token = (await hasToken(chatId)).mpatrul_token;
+            await ctx.sendChatAction('typing');
+            await ctx.reply(
+                fmt`
+                👋 Для входа используйте свой аккаунт ${link(
+                    'Молодежного патруля',
+                    'https://mpatrul.vercel.app/'
+                )}.
+                `
+            );
+
+            const token = await fetchToken(chatId);
             if (token) {
+                await ctx.sendChatAction('typing');
                 await ctx.reply(
                     '🔄 Вы уже вошли в аккаунт. Хотите войти ещё раз?',
                     Markup.inlineKeyboard([
@@ -22,11 +35,14 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
                     ])
                 );
             } else {
-                await ctx.reply('📧 Пожалуйста, введите ваш логин:');
+                await ctx.sendChatAction('typing');
+                await ctx.reply('👤 Отправьте ваш логин одним сообщением без форматирования.');
                 return ctx.wizard.next();
             }
         } catch (error) {
-            console.error('Неожиданная ошибка во время процесса входа:', error);
+            console.error('🚨 Неожиданная ошибка во время процесса входа:', error);
+
+            await ctx.sendChatAction('typing');
             await ctx.reply('❌ Произошла неожиданная ошибка. Попробуйте снова.');
             return ctx.scene.leave();
         }
@@ -34,39 +50,45 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     async (ctx) => {
         const chatId = ctx.chat?.id;
         if (!chatId) {
-            await ctx.reply('❌ Не удалось определить идентификатор чата.');
+            await ctx.sendChatAction('typing');
+            await ctx.reply('⚠️ Не удалось определить идентификатор чата.');
             return ctx.scene.leave();
         }
         if (ctx.message && 'text' in ctx.message) {
             const login = ctx.message.text.trim();
             if (!login) {
-                await ctx.reply('❌ Логин не может быть пустым. Попробуйте снова.');
+                await ctx.sendChatAction('typing');
+                await ctx.reply('⚠️ Логин не может быть пустым. Попробуйте снова.');
                 return ctx.wizard.back();
             }
             await updateLogin(chatId, login);
         }
-        await ctx.reply('🔒 Пожалуйста, введите ваш пароль:');
+        await ctx.sendChatAction('typing');
+        await ctx.reply('🔒 Отправьте ваш пароль одним сообщением без форматирования.');
         return ctx.wizard.next();
     },
     async (ctx) => {
         const chatId = ctx.chat?.id;
         if (!chatId) {
-            await ctx.reply('❌ Не удалось определить идентификатор чата.');
+            await ctx.sendChatAction('typing');
+            await ctx.reply('⚠️ Не удалось определить идентификатор чата.');
             return ctx.scene.leave();
         }
         if (ctx.message && 'text' in ctx.message) {
             const password = ctx.message.text.trim();
             if (!password) {
-                await ctx.reply('❌ Пароль не может быть пустым. Попробуйте снова.');
+                await ctx.sendChatAction('typing');
+                await ctx.reply('⚠️ Пароль не может быть пустым. Попробуйте снова.');
                 return ctx.wizard.back();
             }
             await updatePassword(chatId, password);
         }
 
-        const login = (await fetchLogin(chatId)).mpatrul_login
-        const password = (await fetchPassword(chatId)).mpatrul_password
+        const login = await fetchLogin(chatId);
+        const password = await fetchPassword(chatId);
 
         if (!login || !password) {
+            await ctx.sendChatAction('typing');
             await ctx.reply('❌ Ошибка: логин или пароль отсутствуют.');
             return ctx.scene.leave();
         }
@@ -75,15 +97,21 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
             const loginResponse = await apiClient.signIn(login, password);
 
             if (!loginResponse.data) {
-                console.error('Ошибка входа:', loginResponse.error);
+                console.error('🚨 Ошибка входа:', loginResponse.error);
+
+                await ctx.sendChatAction('typing');
                 await ctx.reply('❌ Проверьте свои данные и попробуйте снова.');
                 return ctx.scene.leave();
             }
 
             await updateToken(chatId, loginResponse.data.accessToken);
+
+            await ctx.sendChatAction('typing');
             await ctx.reply('✅ Вход выполнен успешно!');
         } catch (error) {
-            console.error('Ошибка при выполнении входа:', error);
+            console.error('🚨 Ошибка при выполнении входа:', error);
+
+            await ctx.sendChatAction('typing');
             await ctx.reply('❌ Произошла ошибка при входе. Попробуйте снова.');
         }
 
@@ -92,11 +120,13 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
 );
 
 signinWizard.action('no-signin', async (ctx) => {
+    await ctx.sendChatAction('typing');
     await ctx.reply('👌 Хорошо, вы остались в текущем аккаунте.');
     await ctx.scene.leave();
 });
 
 signinWizard.action('start-signin', async (ctx) => {
-    await ctx.reply('📧 Пожалуйста, введите ваш логин:');
+    await ctx.sendChatAction('typing');
+    await ctx.reply('👤 Отправьте ваш логин одним сообщением без форматирования.');
     return ctx.wizard.selectStep(1);
 });
