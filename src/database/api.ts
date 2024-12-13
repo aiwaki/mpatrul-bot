@@ -11,14 +11,14 @@ function isPrivateChat(chat: Chat): chat is Chat & { tg_first_name: string; tg_u
     return chat.type === 'private';
 }
 
-export async function fetchChats(): Promise<{ chats: Chat[] }> {
+export async function fetchChats(): Promise<Chat[]> {
     try {
         const { data, error } = await supabase.from('chats').select();
         if (error) handleError('Error fetching chats:', error);
-        return { chats: (data ?? []) as Chat[] };
+        return (data ?? []) as Chat[];
     } catch (error) {
         console.error('Unexpected error in fetchChats:', error);
-        return { chats: [] };
+        return [];
     }
 }
 
@@ -92,7 +92,7 @@ export async function updatePassword(tg_id: number, mpatrul_password: string): P
     }
 }
 
-export async function fetchLogin(tg_id: number): Promise<{ mpatrul_login: string }> {
+export async function fetchLogin(tg_id: number): Promise<string> {
     try {
         const { data, error } = await supabase
             .from('chats')
@@ -101,14 +101,14 @@ export async function fetchLogin(tg_id: number): Promise<{ mpatrul_login: string
             .single();
 
         if (error) handleError('Error fetching chats:', error);
-        return { mpatrul_login: data.mpatrul_login };
+        return data.mpatrul_login;
     } catch (error) {
         console.error('Unexpected error in fetchLogin:', error);
-        return { mpatrul_login: "" };
+        return "";
     }
 }
 
-export async function fetchPassword(tg_id: number): Promise<{ mpatrul_password: string }> {
+export async function fetchPassword(tg_id: number): Promise<string> {
     try {
         const { data, error } = await supabase
             .from('chats')
@@ -117,10 +117,10 @@ export async function fetchPassword(tg_id: number): Promise<{ mpatrul_password: 
             .single();
 
         if (error) handleError('Error fetching chats:', error);
-        return { mpatrul_password: data.mpatrul_password };
+        return data.mpatrul_password;
     } catch (error) {
         console.error('Unexpected error in fetchPassword:', error);
-        return { mpatrul_password: "" };
+        return "";
     }
 }
 
@@ -138,7 +138,7 @@ export async function updateToken(tg_id: number, mpatrul_token: string): Promise
     }
 }
 
-export async function hasToken(tg_id: number): Promise<{ mpatrul_token: string | null }> {
+export async function fetchToken(tg_id: number): Promise<string> {
     try {
         const { data, error } = await supabase
             .from('chats')
@@ -147,9 +147,9 @@ export async function hasToken(tg_id: number): Promise<{ mpatrul_token: string |
             .maybeSingle();
 
         if (error) handleError('Error fetching token:', error);
-        return { mpatrul_token: data?.mpatrul_token };
+        return data?.mpatrul_token;
     } catch (error) {
         console.error('Unexpected error in hasToken:', error);
-        return { mpatrul_token: null };
+        return "";
     }
 }
