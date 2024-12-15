@@ -48,28 +48,41 @@ export class ApiClient {
     }
 
     async uploadMedia(image: File, token: string): Promise<string | null> {
-        const response: ApiResponse<UploadMediaResponse> = await this.request("/media/upload", "POST", {
-            format: image.type,
-        }, token);
+        const formData = new FormData();
+        formData.append("file", image);
+
+        const response: ApiResponse<UploadMediaResponse> = await this.request(
+            "/media/upload",
+            "POST",
+            formData,
+            token,
+            true
+        ); // TODO: Fix (error: Failed to upload media)
+
         return response.data?.id || null;
     }
 
     private async request<T>(
         endpoint: string,
         method: "GET" | "POST" | "PUT" | "DELETE",
-        body?: Record<string, any>,
-        token?: string
+        body?: Record<string, any> | FormData,
+        token?: string,
+        isFormData: boolean = false
     ): Promise<ApiResponse<T>> {
         try {
-            const headers: Record<string, string> = { "Content-Type": "application/json" };
+            const headers: Record<string, string> = {};
+
+            if (!isFormData) {
+                headers["Content-Type"] = "application/json";
+            }
             if (token) {
                 headers["Authorization"] = `Bearer ${token}`;
             }
 
             const response = await fetch(`${this.baseUrl}${endpoint}`, {
                 method,
-                headers,
-                body: body ? JSON.stringify(body) : undefined,
+                headers: isFormData ? { Authorization: `Bearer ${token || ""}` } : headers,
+                body: isFormData ? body as FormData : body ? JSON.stringify(body) : undefined,
             });
 
             if (!response.ok) {
