@@ -14,9 +14,16 @@ export const meWizard = new Scenes.WizardScene<Scenes.WizardContext>(
         }
 
         try {
-            const response = await apiClient.me(await fetchToken(chatId));
+            const token = await fetchToken(chatId)
+            if (!token) {
+                await ctx.sendChatAction('typing');
+                await ctx.reply('⚠️ Войдите в аккаунт.');
+                return ctx.scene.leave();
+            }
+
+            const response = await apiClient.me(token);
+            if (response.error) throw new Error(response.error);
             const data = response.data;
-            if (!data) throw ('Token is undefined.');
 
             const message = fmt`
 📝 ${bold('Карточка волонтера')}
