@@ -1,7 +1,8 @@
 import { Markup, Scenes } from 'telegraf';
 import { fmt, bold } from 'telegraf/format';
 import { apiClient } from '../../mpatrul/client';
-import { fetchToken } from '../../database/api';
+import { fetchToken, insertLink } from '../../database/api';
+import { screenshotPage } from '../../browser/client';
 
 export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     'link',
@@ -24,19 +25,29 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
         }
 
         try {
-            if (ctx.message && 'text' in ctx.message) {
-                const link = ctx.message.text.trim();
-                if (!link) {
-                    await ctx.sendChatAction('typing');
-                    await ctx.reply('⚠️ Ссылка не может быть пустой. Попробуйте снова.');
-                    return ctx.wizard.back();
-                }
+            if (!(ctx.message && 'text' in ctx.message)) {
+                return ctx.scene.leave();
+            }
 
-                const response = await apiClient.createLink(link, await fetchToken(chatId));
-                const data = response.data;
-                if (!data) throw new Error('Token is undefined.');
+            const link = ctx.message.text.trim();
+            if (!link) {
+                await ctx.sendChatAction('typing');
+                await ctx.reply('⚠️ Ссылка не может быть пустой. Попробуйте снова.');
+                return ctx.wizard.back();
+            }
 
-                const message = fmt`
+            const token = await fetchToken(chatId)
+            if (!token) {
+                await ctx.sendChatAction('typing');
+                await ctx.reply('⚠️ Войдите в аккаунт.');
+                return ctx.scene.leave();
+            }
+
+            let response = await apiClient.createLink(link, token);
+            if (response.error) throw new Error(response.error);
+            const data = response.data;
+
+            const message = fmt`
 📄 ${bold('Результаты проверки')}
 
 🔗 ${bold('Ссылка')}: ${data.link.url}
@@ -45,41 +56,40 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
 📜 ${bold('Отчет')}: ${data.report ? '✅ Отправлен' : '❌ Не отправлен'}
                 `;
 
-                await ctx.sendChatAction('typing');
-                await ctx.reply(message, { parse_mode: 'Markdown' });
+            await ctx.sendChatAction('typing');
+            await ctx.reply(message, { parse_mode: 'Markdown' });
+            if (data.report) {
+                return ctx.scene.leave();
             }
+
+            const alreadyExists = await insertLink(chatId, link)
+            if (alreadyExists) {
+                await ctx.sendChatAction('typing');
+                await ctx.reply('👌 Ссылка уже существует.');
+                await ctx.scene.leave();
+            }
+
+            const screenshot = await screenshotPage(link)
+            response = await apiClient.createReport(
+                link,
+                "Продажа семян.",
+                screenshot,
+                token
+            );
+            if (response.error) throw new Error(response.error);
+
+            await ctx.sendChatAction('typing');
+            await ctx.reply('✅ Отчет отправлен.');
+            await ctx.scene.leave();
         } catch (error) {
             console.error(error);
+
             await ctx.sendChatAction('typing');
             await ctx.reply('🚨 Произошла ошибка при получении данных.');
+            await ctx.scene.leave();
         }
-
-        await ctx.sendChatAction('typing');
-        await ctx.reply(
-            fmt`
-📤 Отправляем отчет?
-
-Описание и скриншот будут созданы автоматически.
-            `,
-            Markup.inlineKeyboard([
-                [Markup.button.callback('Да', 'report')],
-                [Markup.button.callback('Нет', 'no-report')],
-            ])
-        );
     }
 );
-
-linkWizard.action('report', async (ctx) => {
-    await ctx.sendChatAction('typing');
-    await ctx.reply('✅ Отчет отправлен.');
-    await ctx.scene.leave();
-});
-
-linkWizard.action('no-report', async (ctx) => {
-    await ctx.sendChatAction('typing');
-    await ctx.reply('👌 Отчет не отправлен.');
-    await ctx.scene.leave();
-});
 
 linkWizard.action('cancel', async (ctx) => {
     await ctx.sendChatAction('typing');
