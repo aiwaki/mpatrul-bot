@@ -153,3 +153,26 @@ export async function fetchToken(tg_id: number): Promise<string> {
         return "";
     }
 }
+
+export async function insertLink(tg_id: number, url: string): Promise<boolean> {
+    try {
+        const { error: insertError } = await supabase.from('links').insert([{
+            tg_id,
+            url,
+        }]);
+
+        if (insertError) {
+            if (insertError.code === '23505') {
+                console.warn(`Link ${url} from ${tg_id} already exists.`);
+            } else {
+                handleError('Error inserting link:', insertError);
+            }
+            return true;
+        }
+
+        console.log(`Link ${url} from ${tg_id} inserted successfully.`);
+    } catch (error) {
+        console.error('Unexpected error in insertLink:', error);
+    }
+    return false;
+}
