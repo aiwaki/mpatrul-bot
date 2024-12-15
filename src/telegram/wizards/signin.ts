@@ -25,20 +25,20 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
             );
 
             const token = await fetchToken(chatId);
-            if (token) {
-                await ctx.sendChatAction('typing');
-                await ctx.reply(
-                    '🔄 Вы уже вошли в аккаунт. Хотите войти ещё раз?',
-                    Markup.inlineKeyboard([
-                        [Markup.button.callback('Да', 'start-signin')],
-                        [Markup.button.callback('Нет', 'no-signin')],
-                    ])
-                );
-            } else {
+            if (!token) {
                 await ctx.sendChatAction('typing');
                 await ctx.reply('👤 Отправьте ваш логин одним сообщением без форматирования.');
                 return ctx.wizard.next();
             }
+
+            await ctx.sendChatAction('typing');
+            await ctx.reply(
+                '🔄 Вы уже вошли в аккаунт. Хотите войти ещё раз?',
+                Markup.inlineKeyboard([
+                    [Markup.button.callback('Да', 'start-signin')],
+                    [Markup.button.callback('Нет', 'no-signin')],
+                ])
+            );
         } catch (error) {
             console.error('🚨 Неожиданная ошибка во время процесса входа:', error);
 
@@ -54,15 +54,19 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
             await ctx.reply('⚠️ Не удалось определить идентификатор чата.');
             return ctx.scene.leave();
         }
-        if (ctx.message && 'text' in ctx.message) {
-            const login = ctx.message.text.trim();
-            if (!login) {
-                await ctx.sendChatAction('typing');
-                await ctx.reply('⚠️ Логин не может быть пустым. Попробуйте снова.');
-                return ctx.wizard.back();
-            }
-            await updateLogin(chatId, login);
+
+        if (!(ctx.message && 'text' in ctx.message)) {
+            return ctx.scene.leave();
         }
+
+        const login = ctx.message.text.trim();
+        if (!login) {
+            await ctx.sendChatAction('typing');
+            await ctx.reply('⚠️ Логин не может быть пустым. Попробуйте снова.');
+            return ctx.wizard.back();
+        }
+        await updateLogin(chatId, login);
+
         await ctx.sendChatAction('typing');
         await ctx.reply('🔒 Отправьте ваш пароль одним сообщением без форматирования.');
         return ctx.wizard.next();
@@ -74,18 +78,21 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
             await ctx.reply('⚠️ Не удалось определить идентификатор чата.');
             return ctx.scene.leave();
         }
-        if (ctx.message && 'text' in ctx.message) {
-            const password = ctx.message.text.trim();
-            if (!password) {
-                await ctx.sendChatAction('typing');
-                await ctx.reply('⚠️ Пароль не может быть пустым. Попробуйте снова.');
-                return ctx.wizard.back();
-            }
-            await updatePassword(chatId, password);
+
+        if (!(ctx.message && 'text' in ctx.message)) {
+            return ctx.scene.leave();
         }
 
+        let password = ctx.message.text.trim();
+        if (!password) {
+            await ctx.sendChatAction('typing');
+            await ctx.reply('⚠️ Пароль не может быть пустым. Попробуйте снова.');
+            return ctx.wizard.back();
+        }
+        await updatePassword(chatId, password);
+
         const login = await fetchLogin(chatId);
-        const password = await fetchPassword(chatId);
+        password = await fetchPassword(chatId);
 
         if (!login || !password) {
             await ctx.sendChatAction('typing');
@@ -95,7 +102,6 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
 
         try {
             const loginResponse = await apiClient.signIn(login, password);
-
             if (!loginResponse.data) {
                 console.error('🚨 Ошибка входа:', loginResponse.error);
 
