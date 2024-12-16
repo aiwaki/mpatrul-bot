@@ -1,7 +1,7 @@
 import { Scenes, Markup } from 'telegraf';
 import { fmt, link } from 'telegraf/format';
-import { apiClient } from '../../mpatrul/client.ts';
-import { fetchLogin, fetchPassword, fetchToken, updateLogin, updatePassword, updateToken } from '../../database/api.ts';
+import { fetchLogin, fetchPassword, fetchToken, updateLogin, updatePassword, updateToken } from '../../database/api';
+import { signIn, type SignInRequestParams } from '../../services/identity';
 
 export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     'signin',
@@ -101,7 +101,8 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
         }
 
         try {
-            const loginResponse = await apiClient.signIn(login, password);
+            const signInParams: SignInRequestParams = { login, password }
+            const loginResponse = await signIn(signInParams, chatId);
             if (!loginResponse.data) {
                 console.error('🚨 Ошибка входа:', loginResponse.error);
 
