@@ -1,7 +1,7 @@
 import { Scenes } from 'telegraf';
 import { fmt, bold } from 'telegraf/format';
-import { apiClient } from '../../mpatrul/client';
 import { fetchToken } from '../../database/api';
+import { getMyProfile } from '../../services/profiles';
 
 export const meWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     'me',
@@ -21,7 +21,7 @@ export const meWizard = new Scenes.WizardScene<Scenes.WizardContext>(
                 return ctx.scene.leave();
             }
 
-            const response = await apiClient.me(token);
+            const response = await getMyProfile(undefined, chatId);
             if (response.error) throw new Error(response.error);
             const data = response.data;
 
