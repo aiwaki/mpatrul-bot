@@ -39,7 +39,7 @@ export async function screenshotPage(url: string): Promise<File> {
     try {
         await page.goto(url, { waitUntil: "networkidle2" });
 
-        const screenshotData = await page.screenshot({ fullPage: true });
+        const screenshotData = await page.screenshot();
         return new File([new Uint8Array(screenshotData)], "screenshot.png", { type: "image/png" });
     } finally {
         await page.close();
