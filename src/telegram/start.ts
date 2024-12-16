@@ -1,6 +1,6 @@
-import { bot } from './client.ts';
+import { bot } from './client';
 import { fmt, bold } from 'telegraf/format';
-import { insertChat } from '../database/api.ts';
+import { insertChat } from '../database/api';
 
 bot.start(async (ctx) => {
     await insertChat(ctx.chat);
