@@ -1,6 +1,6 @@
 import type { Chat } from 'telegraf/types';
 import type { PostgrestError } from '@supabase/supabase-js';
-import { supabase } from './client.ts';
+import { supabase } from './client';
 
 function handleError(message: string, error: PostgrestError): never {
     console.error(`${message} ${error.message}`);
