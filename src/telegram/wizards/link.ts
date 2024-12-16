@@ -1,8 +1,12 @@
 import { Markup, Scenes } from 'telegraf';
 import { fmt, bold } from 'telegraf/format';
-import { apiClient } from '../../mpatrul/client';
 import { fetchToken, insertLink } from '../../database/api';
 import { screenshotPage } from '../../browser/client';
+import { createLink, type CreateLinkRequestParams } from '../../services/links';
+import { createReport, type CreateReportRequestParams } from '../../services/reports';
+import { ReportType } from '../../utils/constants';
+import { createMedia, Media, type CreateMediaRequestParams } from '../../services/media';
+import { uploadFile } from '../../utils/uploadFile';
 
 export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     'link',
@@ -29,8 +33,8 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
                 return ctx.scene.leave();
             }
 
-            const link = ctx.message.text.trim();
-            if (!link) {
+            const url = ctx.message.text.trim();
+            if (!url) {
                 await ctx.sendChatAction('typing');
                 await ctx.reply('⚠️ Ссылка не может быть пустой. Попробуйте снова.');
                 return ctx.wizard.back();
@@ -43,9 +47,10 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
                 return ctx.scene.leave();
             }
 
-            let response = await apiClient.createLink(link, token);
-            if (response.error) throw new Error(response.error);
-            const data = response.data;
+            const createLinkParams: CreateLinkRequestParams = { url }
+            const linkResponse = await createLink(createLinkParams, chatId);
+            if (linkResponse.error) throw new Error(linkResponse.error);
+            const data = linkResponse.data;
 
             const message = fmt`
 📄 ${bold('Результаты проверки')}
@@ -62,21 +67,31 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
                 return ctx.scene.leave();
             }
 
-            const alreadyExists = await insertLink(chatId, link)
+            const alreadyExists = await insertLink(chatId, url)
             if (alreadyExists) {
                 await ctx.sendChatAction('typing');
                 await ctx.reply('👌 Ссылка уже существует.');
                 await ctx.scene.leave();
             }
 
-            const screenshot = await screenshotPage(link)
-            response = await apiClient.createReport(
-                link,
-                "Продажа семян.",
-                screenshot,
-                token
-            );
-            if (response.error) throw new Error(response.error);
+            const screenshot = await screenshotPage(url)
+
+            const mediaParams: CreateMediaRequestParams = {
+                format: Media.PNG
+            }
+            const mediaResponse = await createMedia(mediaParams, chatId)
+            const fileResponse = await uploadFile(mediaResponse.data.upload, screenshot)
+
+            const createRequestParams: CreateReportRequestParams = {
+                url,
+                content: ReportType.Propaganda.toString(),
+                isPersonal: true,
+                isMedia: false,
+                desciption: "Продажа семян.",
+                photoId: mediaResponse.data.id,
+            }
+            const reportResponse = await createReport(createRequestParams, chatId);
+            if (reportResponse.error) throw new Error(reportResponse.error);
 
             await ctx.sendChatAction('typing');
             await ctx.reply('✅ Отчет отправлен.');
