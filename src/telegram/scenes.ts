@@ -1,8 +1,8 @@
-import { bot } from './client.ts'
+import { bot } from './client'
 import { Scenes, session } from "telegraf";
-import { linkWizard } from './wizards/link.ts'
-import { meWizard } from './wizards/me.ts'
-import { signinWizard } from './wizards/signin.ts';
+import { linkWizard } from './wizards/link'
+import { meWizard } from './wizards/me'
+import { signinWizard } from './wizards/signin';
 
 const stage = new Scenes.Stage<Scenes.WizardContext>([linkWizard, meWizard, signinWizard]);
 
