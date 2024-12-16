@@ -1,4 +1,4 @@
-import { bot } from './client.ts'
+import { bot } from './client'
 
 bot.telegram.setMyCommands([
     {
