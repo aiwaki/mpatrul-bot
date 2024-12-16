@@ -1,7 +1,7 @@
-import { bot } from './client.ts'
-import './scenes.ts'
-import './commands.ts'
-import './start.ts'
+import { bot } from './client'
+import './scenes'
+import './commands'
+import './start'
 
 bot.launch()
 
