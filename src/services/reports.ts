@@ -32,9 +32,8 @@ export const createReport = async (
   const { data } = await request<SingleResponse<Report>>({
     url: `${API.report}/create`,
     method: "POST",
-    data: params,
-    tg_id: tg_id
-  });
+    data: params
+  }, tg_id);
 
   return data;
 };
