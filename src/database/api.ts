@@ -2,16 +2,21 @@ import type { Chat } from 'telegraf/types';
 import type { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from './client';
 
-function handleError(message: string, error: PostgrestError): never {
+const handleError = (
+    message: string, error: PostgrestError
+): never => {
     console.error(`${message} ${error.message}`);
     throw new Error(`${message} ${error.message}`);
 }
 
-function isPrivateChat(chat: Chat): chat is Chat & { tg_first_name: string; tg_username?: string } {
+const isPrivateChat = (
+    chat: Chat
+): chat is Chat & { tg_first_name: string; tg_username?: string } => {
     return chat.type === 'private';
 }
 
-export async function fetchChats(): Promise<Chat[]> {
+export const fetchChats = async (
+): Promise<Chat[]> => {
     try {
         const { data, error } = await supabase.from('chats').select();
         if (error) handleError('Error fetching chats:', error);
@@ -22,7 +27,9 @@ export async function fetchChats(): Promise<Chat[]> {
     }
 }
 
-export async function insertChat(chat: Chat): Promise<void> {
+export const insertChat = async (
+    chat: Chat
+): Promise<void> => {
     try {
         if (!isPrivateChat(chat)) {
             console.log(`Skipping non-private chat with ID: ${chat.id}`);
@@ -48,7 +55,9 @@ export async function insertChat(chat: Chat): Promise<void> {
     }
 }
 
-async function checkChatExists(tg_id: number): Promise<boolean> {
+const checkChatExists = async (
+    tg_id: number
+): Promise<boolean> => {
     try {
         const { data, error } = await supabase
             .from('chats')
@@ -64,7 +73,9 @@ async function checkChatExists(tg_id: number): Promise<boolean> {
     }
 }
 
-export async function updateLogin(tg_id: number, mpatrul_login: string): Promise<void> {
+export const updateLogin = async (
+    tg_id: number, mpatrul_login: string
+): Promise<void> => {
     try {
         const { error } = await supabase
             .from('chats')
@@ -78,7 +89,9 @@ export async function updateLogin(tg_id: number, mpatrul_login: string): Promise
     }
 }
 
-export async function updatePassword(tg_id: number, mpatrul_password: string): Promise<void> {
+export const updatePassword = async (
+    tg_id: number, mpatrul_password: string
+): Promise<void> => {
     try {
         const { error } = await supabase
             .from('chats')
@@ -92,7 +105,9 @@ export async function updatePassword(tg_id: number, mpatrul_password: string): P
     }
 }
 
-export async function fetchLogin(tg_id: number): Promise<string> {
+export const fetchLogin = async (
+    tg_id: number
+): Promise<string> => {
     try {
         const { data, error } = await supabase
             .from('chats')
@@ -101,14 +116,16 @@ export async function fetchLogin(tg_id: number): Promise<string> {
             .single();
 
         if (error) handleError('Error fetching chats:', error);
-        return data.mpatrul_login;
+        return data?.mpatrul_login;
     } catch (error) {
         console.error('Unexpected error in fetchLogin:', error);
         return "";
     }
 }
 
-export async function fetchPassword(tg_id: number): Promise<string> {
+export const fetchPassword = async (
+    tg_id: number
+): Promise<string> => {
     try {
         const { data, error } = await supabase
             .from('chats')
@@ -117,14 +134,16 @@ export async function fetchPassword(tg_id: number): Promise<string> {
             .single();
 
         if (error) handleError('Error fetching chats:', error);
-        return data.mpatrul_password;
+        return data?.mpatrul_password;
     } catch (error) {
         console.error('Unexpected error in fetchPassword:', error);
         return "";
     }
 }
 
-export async function updateToken(tg_id: number, mpatrul_token: string): Promise<void> {
+export const updateToken = async (
+    tg_id: number, mpatrul_token: string
+): Promise<void> => {
     try {
         const { error } = await supabase
             .from('chats')
@@ -138,7 +157,9 @@ export async function updateToken(tg_id: number, mpatrul_token: string): Promise
     }
 }
 
-export async function fetchToken(tg_id: number): Promise<string> {
+export const fetchToken = async (
+    tg_id: number
+): Promise<string> => {
     try {
         const { data, error } = await supabase
             .from('chats')
@@ -154,7 +175,9 @@ export async function fetchToken(tg_id: number): Promise<string> {
     }
 }
 
-export async function insertLink(tg_id: number, url: string): Promise<boolean> {
+export const insertLink = async (
+    tg_id: number, url: string
+): Promise<boolean> => {
     try {
         const { error: insertError } = await supabase.from('links').insert([{
             tg_id,
