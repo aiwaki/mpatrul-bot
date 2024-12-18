@@ -103,7 +103,7 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
         try {
             const signInParams: SignInRequestParams = { login, password }
             const loginResponse = await signIn(signInParams, chatId);
-            if (!loginResponse.data) {
+            if (loginResponse.error) {
                 console.error('🚨 Ошибка входа:', loginResponse.error);
 
                 await ctx.sendChatAction('typing');
