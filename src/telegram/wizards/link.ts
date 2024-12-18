@@ -1,7 +1,7 @@
 import { Markup, Scenes } from 'telegraf';
 import { fmt, bold } from 'telegraf/format';
 import { fetchToken, insertLink } from '../../database/api';
-import { screenshotPage } from '../../browser/client';
+import { screenshotPage } from '../../browser/pages';
 import { createLink, type CreateLinkRequestParams } from '../../services/links';
 import { createReport, type CreateReportRequestParams } from '../../services/reports';
 import { ReportType } from '../../utils/constants';
