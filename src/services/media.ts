@@ -23,9 +23,8 @@ export const createMedia = async (
   const { data } = await request<SingleResponse<CreateMediaResponse>>({
     url: `${API.media}/upload`,
     method: "POST",
-    data: params,
-    tg_id: tg_id
-  });
+    data: params
+  }, tg_id);
 
   return data;
 };
