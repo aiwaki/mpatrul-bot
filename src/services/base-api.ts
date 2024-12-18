@@ -24,26 +24,9 @@ interface RequestConfig<D>
   params?: RequestParams;
 }
 
-const useToken = (requestConfig: any): any => {
-  const { tg_id } = requestConfig;
-  if (!tg_id) {
-    throw new Error("tg_id is required in requestConfig");
-  }
-
-  return {
-    ...requestConfig,
-    headers: {
-      Authorization: `Bearer ${fetchToken(tg_id)}`,
-      accept: "application/json",
-      ...requestConfig?.headers,
-    },
-  };
-}; // TODO: Fix
-
-publicAxios.interceptors.request.use(useToken);
-
 export const request = async <ResD, ReqD = unknown>(
-  config: RequestConfig<ReqD> & { tg_id: number }
+  config: RequestConfig<ReqD>,
+  tg_id: number
 ): Promise<AxiosResponse<ResD>> => {
   const {
     url,
@@ -51,14 +34,21 @@ export const request = async <ResD, ReqD = unknown>(
     headers = {},
     data = {},
     params = {},
-    tg_id, // Получаем tg_id
     ...options
   } = config;
+
+  const token = await fetchToken(tg_id);
+
+  const updatedHeaders = {
+    ...headers,
+    Authorization: `Bearer ${token}`,
+    accept: "application/json",
+  } as Record<string, string>;
 
   const response = await publicAxios.request({
     url,
     method,
-    headers,
+    headers: updatedHeaders,
     data,
     params,
     ...options,
