@@ -27,9 +27,8 @@ export const getMyProfile = async (
 ): Promise<SingleResponse<Profile>> => {
   const { data } = await request<SingleResponse<Profile>>({
     url: `${API.profiles}/me`,
-    signal,
-    tg_id
-  });
+    signal
+  }, tg_id);
 
   return data;
 };
