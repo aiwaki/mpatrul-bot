@@ -38,6 +38,8 @@ export const meWizard = new Scenes.WizardScene<Scenes.WizardContext>(
             await ctx.sendChatAction('typing');
             await ctx.reply(message);
         } catch (error) {
+            console.error('🚨 Ошибка при получении карточки волонтера:', error)
+
             await ctx.sendChatAction('typing');
             await ctx.reply('🚨 Произошла ошибка при получении данных.');
         }
