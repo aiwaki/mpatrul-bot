@@ -80,7 +80,9 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
                 format: Media.PNG
             }
             const mediaResponse = await createMedia(mediaParams, chatId)
-            const fileResponse = await uploadFile(mediaResponse.data.upload, screenshot)
+            if (mediaResponse.error) throw new Error(mediaResponse.error);
+
+            await uploadFile(mediaResponse.data.upload, screenshot)
 
             const createRequestParams: CreateReportRequestParams = {
                 url,
@@ -97,7 +99,7 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
             await ctx.reply('✅ Отчет отправлен.');
             await ctx.scene.leave();
         } catch (error) {
-            console.error(error);
+            console.error('🚨 Ошибка при проверке ссылки или отправке отчета:', error);
 
             await ctx.sendChatAction('typing');
             await ctx.reply('🚨 Произошла ошибка при получении данных.');
