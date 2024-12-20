@@ -10,7 +10,13 @@ let browser: Browser | null = null;
 export const getBrowserInstance = async (
 ): Promise<Browser> => {
     if (!browser) {
-        browser = await puppeteer.launch({ defaultViewport: { width: 1920, height: 1080 } });
+        browser = await puppeteer.launch({
+            args: [
+                '--disable-web-security',
+                '--disable-features=SafeBrowsing',
+            ],
+            defaultViewport: { width: 1920, height: 1080 }
+        });
         console.log("Browser instance created.");
     }
     return browser;
