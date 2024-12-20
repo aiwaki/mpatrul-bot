@@ -30,45 +30,61 @@ export enum ReportType {
   // Extremism = "06ffb02b-25e9-4ca0-b0fb-8a4b94374da8",
 }
 
+export enum ReportText {
+  Propaganda = "Пропаганда или распространения наркотиков",
+  Abuse = "Жестокое обращение, суицид",
+  CrimanalSubciltures = "Криминальные субкультуры",
+  RadicalSubciltures = "Экстремизм, терроризм, ультрарадикальные субкультуры",
+  Colimbine = "Колумбайн",
+  Cyberbullying = "Кибербуллинг",
+  Recruitment = "Пропаганда или распространения наркотиков",
+  DiscreditingArmed = "Дискредитация ВС РФ",
+  // ChildPorn = "Детская порнография",
+  // Extremism = "Экстремизм",
+  Other = "Другое",
+}
+
+export const REPORTS = [ReportText.Propaganda, ReportText.Abuse, ReportText.CrimanalSubciltures, ReportText.RadicalSubciltures, ReportText.Colimbine, ReportText.Cyberbullying, ReportText.Recruitment, ReportText.DiscreditingArmed, ReportText.Other]
+
 export const CONTENTS = [
   {
-    title: "Пропаганда или распространения наркотиков",
+    title: ReportText.Propaganda,
     value: ReportType.Propaganda,
   },
   {
-    title: "Жестокое обращение, суицид",
+    title: ReportText.Abuse,
     value: ReportType.Abuse,
   },
   {
-    title: "Криминальные субкультуры",
+    title: ReportText.CrimanalSubciltures,
     value: ReportType.CrimanalSubciltures,
   },
   {
-    title: "Экстремизм, терроризм, ультрарадикальные субкультуры",
+    title: ReportText.RadicalSubciltures,
     value: ReportType.RadicalSubciltures,
   },
   {
-    title: "Колумбайн",
+    title: ReportText.Colimbine,
     value: ReportType.Colimbine,
   },
   {
-    title: "Кибербуллинг",
+    title: ReportText.Cyberbullying,
     value: ReportType.Cyberbullying,
   },
   {
-    title: "Вербовка",
+    title: ReportText.Recruitment,
     value: ReportType.Recruitment,
   },
   {
-    title: "Дискредитация ВС РФ",
+    title: ReportText.DiscreditingArmed,
     value: ReportType.DiscreditingArmed,
   },
   // {
-  //   title: "Детская порнография",
+  //   title: ReportText.ChildPorn,
   //   value: ReportType.ChildPorn,
   // },
   // {
-  //   title: "Экстремизм",
+  //   title: ReportText.Extremism,
   //   value: ReportType.Extremism,
   // },
 ];
