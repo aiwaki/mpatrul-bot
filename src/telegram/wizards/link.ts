@@ -63,37 +63,32 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
 
             await ctx.sendChatAction('typing');
             await ctx.reply(message, { parse_mode: 'Markdown' });
+
             if (data.report) {
                 return ctx.scene.leave();
             }
 
-            const alreadyExists = await insertLink(chatId, url)
-            if (alreadyExists) {
-                await ctx.sendChatAction('typing');
-                await ctx.reply('👌 Ссылка уже существует.');
-                await ctx.scene.leave();
-            }
-
-            const screenshot = await screenshotPage(url)
-
             const mediaParams: CreateMediaRequestParams = {
                 format: Media.PNG
-            }
-            const mediaResponse = await createMedia(mediaParams, chatId)
+            };
+            const mediaResponse = await createMedia(mediaParams, chatId);
             if (mediaResponse.error) throw new Error(mediaResponse.error);
 
-            await uploadFile(mediaResponse.data.upload, screenshot)
+            const screenshot = await screenshotPage(url);
+            await uploadFile(mediaResponse.data.upload, screenshot);
 
-            const createRequestParams: CreateReportRequestParams = {
-                url,
-                content: ReportType.Propaganda.toString(),
-                isPersonal: true,
-                isMedia: false,
-                desciption: "Продажа семян.",
-                photoId: mediaResponse.data.id,
-            }
-            const reportResponse = await createReport(createRequestParams, chatId);
-            if (reportResponse.error) throw new Error(reportResponse.error);
+            /*             const createRequestParams: CreateReportRequestParams = {
+                            url: site.url,
+                            content: classifyOut.content,
+                            isPersonal: true,
+                            isMedia: false,
+                            desciption: site.description || classifyOut.label,
+                            photoId: mediaResponse.data.id,
+                        };
+                        const reportResponse = await createReport(createRequestParams, chatId);
+                        if (reportResponse.error) throw new Error(reportResponse.error);
+            
+                        await insertLink(chatId, site.url); // В начале создаём и проверяем на существование, потом обновляем */
 
             await ctx.sendChatAction('typing');
             await ctx.reply('✅ Отчет отправлен.');
