@@ -180,13 +180,13 @@ export const insertLink = async (
 ): Promise<boolean> => {
     try {
         const { error: insertError } = await supabase.from('links').insert([{
-            tg_id,
             url,
+            inserted_by: tg_id,
         }]);
 
         if (insertError) {
             if (insertError.code === '23505') {
-                console.warn(`Link ${url} from ${tg_id} already exists.`);
+                console.warn(`Link ${url} already exists.`);
             } else {
                 handleError('Error inserting link:', insertError);
             }
@@ -198,4 +198,20 @@ export const insertLink = async (
         console.error('Unexpected error in insertLink:', error);
     }
     return false;
+}
+
+export const updateLink = async (
+    tg_id: number, url: string, is_reported: boolean
+): Promise<void> => {
+    try {
+        const { error } = await supabase
+            .from('links')
+            .update({ is_reported, reported_by: tg_id })
+            .eq('url', url);
+
+        if (error) handleError('Error updating link:', error);
+        console.log(`Link ${url} updated successfully.`);
+    } catch (error) {
+        console.error('Unexpected error in updateLink:', error);
+    }
 }
