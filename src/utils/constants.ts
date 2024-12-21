@@ -1,22 +1,5 @@
 export const BASE_URL = "https://mpatrul-api.ru";
 
-export const ACCOUNT_TYPE: Record<string, string> = {
-  "1691aa8d-f819-42f6-b5e1-98f058fee89d": "Работник",
-  "02fa5b84-e1cf-4010-b1af-6266c2caebe9": "Волонтер",
-};
-
-export enum Role {
-  Curator = "9817891f-bf3b-40e3-97c2-bd75acc7e457",
-  Squad = "a0086c9e-566c-46a8-87d5-87f7a0c542d7",
-  Volunteer = "487c0419-5f55-46bf-bed3-2facbebcb0d0",
-}
-
-export const ROLES: Record<string, string> = {
-  "9817891f-bf3b-40e3-97c2-bd75acc7e457": "Куратор",
-  "a0086c9e-566c-46a8-87d5-87f7a0c542d7": "Отряд",
-  "487c0419-5f55-46bf-bed3-2facbebcb0d0": "Волонтер",
-};
-
 export enum ReportType {
   Propaganda = "249f1529-5ca5-4bf5-ae2f-cf18ec3c6eb1",
   Abuse = "7c8bf959-53e6-461b-804d-fd3be3034ad8",
@@ -32,19 +15,40 @@ export enum ReportType {
 
 export enum ReportText {
   Propaganda = "Пропаганда или распространения наркотиков",
-  Abuse = "Жестокое обращение, суицид",
-  CrimanalSubciltures = "Криминальные субкультуры",
+  Abuse = "Жестокое обращение, суицид или обсуждение самоповреждений",
+  CrimanalSubciltures = "Криминальные субкультуры, воровские понятия",
   RadicalSubciltures = "Экстремизм, терроризм, ультрарадикальные субкультуры",
-  Colimbine = "Колумбайн",
-  Cyberbullying = "Кибербуллинг",
-  Recruitment = "Пропаганда или распространения наркотиков",
-  DiscreditingArmed = "Дискредитация ВС РФ",
+  Colimbine = "Колумбайн или связанные идеологии",
+  Cyberbullying = "Кибербуллинг, угрозы или унижения",
+  Recruitment = "Вербовка и преступные организации",
+  DiscreditingArmed = "Дискредитация вооруженных сил Российской Федерации"
   // ChildPorn = "Детская порнография",
   // Extremism = "Экстремизм",
-  Other = "Другое",
 }
 
-export const REPORTS = [ReportText.Propaganda, ReportText.Abuse, ReportText.CrimanalSubciltures, ReportText.RadicalSubciltures, ReportText.Colimbine, ReportText.Cyberbullying, ReportText.Recruitment, ReportText.DiscreditingArmed, ReportText.Other]
+export const CONTEXTS: Record<string, ReportType> = {
+  [ReportText.Propaganda]: ReportType.Propaganda,
+  [ReportText.Abuse]: ReportType.Abuse,
+  [ReportText.CrimanalSubciltures]: ReportType.CrimanalSubciltures,
+  [ReportText.RadicalSubciltures]: ReportType.RadicalSubciltures,
+  [ReportText.Colimbine]: ReportType.Colimbine,
+  [ReportText.Cyberbullying]: ReportType.Cyberbullying,
+  [ReportText.Recruitment]: ReportType.Recruitment,
+  [ReportText.DiscreditingArmed]: ReportType.DiscreditingArmed,
+};
+
+export const REPORTS = [
+  ReportText.Propaganda,
+  ReportText.Abuse,
+  ReportText.CrimanalSubciltures,
+  ReportText.RadicalSubciltures,
+  ReportText.Colimbine,
+  ReportText.Cyberbullying,
+  ReportText.Recruitment,
+  ReportText.DiscreditingArmed,
+  // ReportText.ChildPorn,
+  // ReportText.Extremism
+]
 
 export const CONTENTS = [
   {
