@@ -1,12 +1,13 @@
 import { Markup, Scenes } from 'telegraf';
 import { fmt, bold } from 'telegraf/format';
-import { fetchToken, insertLink } from '../../database/api';
-import { screenshotPage } from '../../browser/pages';
+import { getBrowserInstance } from '../../browser/browser';
+import { extendPage } from '../../browser/page';
 import { createLink, type CreateLinkRequestParams } from '../../services/links';
 import { createReport, type CreateReportRequestParams } from '../../services/reports';
-import { ReportType } from '../../utils/constants';
 import { createMedia, Media, type CreateMediaRequestParams } from '../../services/media';
 import { uploadFile } from '../../utils/uploadFile';
+import { fetchToken } from '../../database/chats';
+import { insertLink } from '../../database/links';
 
 export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     'link',
@@ -40,17 +41,19 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
                 return ctx.wizard.back();
             }
 
-            const token = await fetchToken(chatId)
+            const token = await fetchToken(chatId);
             if (!token) {
                 await ctx.sendChatAction('typing');
                 await ctx.reply('⚠️ Войдите в аккаунт.');
                 return ctx.scene.leave();
             }
 
-            const createLinkParams: CreateLinkRequestParams = { url }
+            const createLinkParams: CreateLinkRequestParams = { url };
             const linkResponse = await createLink(createLinkParams, chatId);
-            if (linkResponse.error) throw new Error(linkResponse.error);
-            const data = linkResponse.data;
+            if (linkResponse.error) {
+                throw new Error(linkResponse.error);
+            }
+            const { data } = linkResponse;
 
             const message = fmt`
 📄 ${bold('Результаты проверки')}
@@ -59,7 +62,7 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
 🔄 ${bold('Количество проверок')}: ${data.count}
 ⏱️ ${bold('Время последней проверки')}: ${data.updatedAt ? new Date(data.updatedAt).toLocaleString() : 'Никогда'}
 📜 ${bold('Отчет')}: ${data.report ? '✅ Отправлен' : '❌ Не отправлен'}
-                `;
+            `;
 
             await ctx.sendChatAction('typing');
             await ctx.reply(message, { parse_mode: 'Markdown' });
@@ -72,23 +75,34 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
                 format: Media.PNG
             };
             const mediaResponse = await createMedia(mediaParams, chatId);
-            if (mediaResponse.error) throw new Error(mediaResponse.error);
+            if (mediaResponse.error) {
+                throw new Error(mediaResponse.error);
+            }
 
-            const screenshot = await screenshotPage(url);
+            const puppeteerPage = await getBrowserInstance().then(browser => browser.newPage());
+            const page = extendPage(puppeteerPage);
+
+            await page.goto(url, { waitUntil: 'networkidle2' });
+
+            const screenshot = await page.screenshotFile();
+            const pageInfo = await page.pageInfo();
+
             await uploadFile(mediaResponse.data.upload, screenshot);
 
-            /*             const createRequestParams: CreateReportRequestParams = {
-                            url: site.url,
-                            content: classifyOut.content,
-                            isPersonal: true,
-                            isMedia: false,
-                            desciption: site.description || classifyOut.label,
-                            photoId: mediaResponse.data.id,
-                        };
-                        const reportResponse = await createReport(createRequestParams, chatId);
-                        if (reportResponse.error) throw new Error(reportResponse.error);
-            
-                        await insertLink(chatId, site.url); // В начале создаём и проверяем на существование, потом обновляем */
+            const createRequestParams: CreateReportRequestParams = {
+                url: pageInfo.url,
+                content: pageInfo.classifyOut.content,
+                isPersonal: true,
+                isMedia: false,
+                desciption: pageInfo.description,
+                photoId: mediaResponse.data.id,
+            };
+            const reportResponse = await createReport(createRequestParams, chatId);
+            if (reportResponse.error) {
+                throw new Error(reportResponse.error);
+            }
+
+            await insertLink(chatId, pageInfo.url);
 
             await ctx.sendChatAction('typing');
             await ctx.reply('✅ Отчет отправлен.');
