@@ -1,7 +1,7 @@
 import { Scenes, Markup } from 'telegraf';
 import { fmt, link } from 'telegraf/format';
-import { fetchLogin, fetchPassword, fetchToken, updateLogin, updatePassword, updateToken } from '../../database/api';
 import { signIn, type SignInRequestParams } from '../../services/identity';
+import { fetchToken, updateLogin, updatePassword, fetchLogin, updateToken } from '../../database/chats';
 
 export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     'signin',
@@ -92,8 +92,6 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
         await updatePassword(chatId, password);
 
         const login = await fetchLogin(chatId);
-        password = await fetchPassword(chatId);
-
         if (!login || !password) {
             await ctx.sendChatAction('typing');
             await ctx.reply('❌ Ошибка: логин или пароль отсутствуют.');
