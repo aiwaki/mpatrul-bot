@@ -1,84 +1,125 @@
 import { getBrowserInstance } from './browser';
-import { classifyText } from '../utils/classification';
+import { extendPage, type ExtendedPage, type PageInfo } from './page';
+import { insertClassificationsBatch, insertPagesBatch, type Classification, type Page } from '../database/pages';
 
-export interface SiteInfo {
-    title?: string;
-    description?: string;
-    url: string;
+async function extractLinks(page: ExtendedPage): Promise<string[]> {
+    console.log("Extracting links from the page...");
+    return await page.evaluate(() => {
+        const elements = document.querySelectorAll("#rso .tF2Cxc");
+        return Array.from(elements)
+            .map(element => {
+                const linkElement = element.querySelector("a");
+                return linkElement ? linkElement.href : null;
+            })
+            .filter(Boolean) as string[];
+    });
 }
 
-export const processSiteInfo = async (
-    site: SiteInfo
-) => {
-    try {
-        if (!site.title || !site.description) {
-            return;
-        }
-
-        let classifyOut = await classifyText(site.title);
-        if (classifyOut.score < 0.4) {
-            const descriptionOut = await classifyText(site.description)
-            if (descriptionOut.score > classifyOut.score) {
-                classifyOut = descriptionOut
-            }
-        }
-    } catch (error) {
-        console.error(`Ошибка при обработке ссылки: ${site.url}`, error);
-    }
-};
-
-export const searchForSites = async () => {
+async function getPageInfo(url: string): Promise<PageInfo | undefined> {
     const browser = await getBrowserInstance();
-    const page = await browser.newPage();
-
-    await page.setExtraHTTPHeaders({
-        Referer: "https://ya.ru/",
-    });
+    const page = extendPage(await browser.newPage());
 
     try {
-        await page.goto("https://google.ru", { waitUntil: "networkidle2" });
-        await page.waitForSelector("textarea[name='q']");
-        await page.type("textarea[name='q']", "купить автоцветущие семена конопли для лучших шишек");
-
-        await page.keyboard.press("Enter");
-        await page.waitForSelector("#rso a");
-
-        let hasNextPage = true;
-        while (hasNextPage) {
-            const results = await page.evaluate((): SiteInfo[] => {
-                const elements = document.querySelectorAll("#rso .tF2Cxc");
-                return Array.from(elements).map((element) => {
-                    const titleElement = element.querySelector("h3");
-                    const linkElement = element.querySelector("a");
-                    const descriptionElement = element.querySelector(".VwiC3b");
-                    return {
-                        title: titleElement ? titleElement.textContent?.trim() : "",
-                        description: descriptionElement ? descriptionElement.textContent?.trim() : "",
-                        url: linkElement ? linkElement.href : "",
-                    };
-                }).filter((result) => result.title && result.url);
-            });
-
-            await Promise.all(results.map((result) => processSiteInfo(result)));
-
-            hasNextPage = await page.evaluate(() => {
-                const nextButton = document.querySelector("#pnnext");
-                return !!nextButton;
-            });
-
-            if (hasNextPage) {
-                await Promise.all([
-                    page.click("#pnnext"),
-                    page.waitForNavigation({ waitUntil: "networkidle2" }),
-                ]);
-            }
-        }
+        console.log(`Fetching page info for URL: ${url}`);
+        await page.setExtraHTTPHeaders({ Referer: "https://ya.ru/" });
+        await page.goto(url, { waitUntil: "networkidle2" });
+        return await page.pageInfo();
+    } catch (error) {
+        console.error("Error processing page:", error);
+        return undefined;
     } finally {
-        await browser.close();
+        await page.close();
     }
-};
+}
 
-// Возвращать все результаты и сохранять их в отдельную таблицу по запросу
-// Брать ссылку из таблицы и отправлять отчет по подтверждению волонтера
+async function navigateToNextPage(page: ExtendedPage): Promise<boolean> {
+    const hasNextPage = await page.evaluate(() => !!document.querySelector("#pnnext"));
+    if (hasNextPage) {
+        console.log("Navigating to the next page...");
+        await Promise.all([
+            page.click("#pnnext"),
+            page.waitForNavigation({ waitUntil: "networkidle2" })
+        ]);
+    }
+    return hasNextPage;
+}
 
-await searchForSites();
+async function collectLinks(query: string, page: ExtendedPage): Promise<string[]> {
+    console.log("Starting link collection with query:", query);
+    await page.setExtraHTTPHeaders({ Referer: "https://ya.ru/" });
+    await page.goto("https://google.ru", { waitUntil: "networkidle2" });
+    await page.type("textarea[name='q']", query);
+    await page.keyboard.press("Enter");
+    await page.waitForSelector("#rso a");
+
+    let hasNextPage = true;
+    let allLinks: string[] = [];
+
+    while (hasNextPage) {
+        const links = await extractLinks(page);
+        console.log(`Collected ${links.length} links from current page.`);
+        allLinks = allLinks.concat(links);
+        hasNextPage = await navigateToNextPage(page);
+    }
+
+    console.log(`Total links collected: ${allLinks.length}`);
+    return allLinks;
+}
+
+async function processLinks(links: string[]): Promise<[Page[], Classification[]]> {
+    console.log("Processing links...");
+    let pages: Page[] = [];
+    let classifications: Classification[] = [];
+
+    for (const link of links) {
+        const pageInfo = await getPageInfo(link);
+        if (pageInfo) {
+            classifications.push({
+                label: pageInfo.classifyOut.label,
+                content: pageInfo.classifyOut.content,
+                score: pageInfo.classifyOut.score
+            });
+            pages.push({
+                title: pageInfo.title,
+                description: pageInfo.description,
+                url: link,
+            });
+            console.log(`Processed link: ${link}`);
+        } else {
+            console.log(`Failed to process link: ${link}`);
+        }
+    }
+    return [pages, classifications];
+}
+
+async function insertData(pages: Page[], classifications: Classification[]) {
+    console.log("Inserting classifications...");
+    const classificationIds = await insertClassificationsBatch(classifications);
+
+    const updatedPages = pages.map((page, index) => ({
+        ...page,
+        classify_out_id: classificationIds[index] || null
+    }));
+
+    console.log("Inserting pages...");
+    await insertPagesBatch(updatedPages);
+}
+
+export async function searchForPages(query: string) {
+    const browser = await getBrowserInstance();
+    const page = extendPage(await browser.newPage());
+
+    try {
+        console.log("Starting search for pages...");
+        const links = await collectLinks(query, page);
+        const [pages, classifications] = await processLinks(links);
+        await insertData(pages, classifications);
+        console.log("Search completed successfully.");
+    } catch (error) {
+        console.error("Error during page search:", error);
+    } finally {
+        await page.close();
+    }
+}
+
+await searchForPages("купить автоцветущие семена конопли для лучших шишек");
