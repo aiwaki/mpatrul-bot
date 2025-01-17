@@ -1,7 +1,7 @@
 import { Scenes } from 'telegraf';
 import { fmt, bold } from 'telegraf/format';
-import { fetchToken } from '../../database/api';
 import { getMyProfile } from '../../services/profiles';
+import { fetchToken } from '../../database/chats';
 
 export const meWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     'me',
@@ -22,8 +22,10 @@ export const meWizard = new Scenes.WizardScene<Scenes.WizardContext>(
             }
 
             const response = await getMyProfile(undefined, chatId);
-            if (response.error) throw new Error(response.error);
-            const data = response.data;
+            if (response.error) {
+                throw new Error(response.error);
+            }
+            const { data } = response;
 
             const message = fmt`
 📝 ${bold('Карточка волонтера')}
