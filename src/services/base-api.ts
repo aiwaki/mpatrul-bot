@@ -4,7 +4,7 @@ import axios, {
   type AxiosResponse,
 } from "axios";
 import { BASE_URL } from "../utils/constants";
-import { fetchToken } from "../database/api";
+import { fetchToken } from "../database/chats";
 
 const publicAxios = axios.create({
   baseURL: `${BASE_URL}/api/v1`,
@@ -45,7 +45,7 @@ export const request = async <ResD, ReqD = unknown>(
     accept: "application/json",
   } as Record<string, string>;
 
-  const response = await publicAxios.request({
+  return await publicAxios.request({
     url,
     method,
     headers: updatedHeaders,
@@ -53,6 +53,4 @@ export const request = async <ResD, ReqD = unknown>(
     params,
     ...options,
   });
-
-  return response;
 };
