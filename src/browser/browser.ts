@@ -16,7 +16,6 @@ export const getBrowserInstance = async (
                 '--disable-features=SafeBrowsing',
             ],
             headless: false,
-            defaultViewport: { width: 1920, height: 1080 }
         });
         console.log("Browser instance created.");
     }
