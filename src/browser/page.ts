@@ -1,5 +1,6 @@
 import { Page as PuppeteerPage } from 'puppeteer';
 import { classifyText, type ClassificationOutput } from '../utils/classification';
+import { getBrowserInstance } from './browser';
 
 export interface ExtendedPage extends PuppeteerPage {
     screenshotFile(): Promise<File>;
@@ -48,3 +49,37 @@ const getBestClassification = async (title: string, description: string) => {
     const descriptionResult = await classifyText(description);
     return descriptionResult.score > titleResult.score ? descriptionResult : titleResult;
 };
+
+export async function getPageScreenshot(url: string): Promise<File | undefined> {
+    const browser = await getBrowserInstance();
+    const page = extendPage(await browser.newPage());
+    await page.setExtraHTTPHeaders({ Referer: "https://ya.ru/" });
+
+    try {
+        console.log(`Screenshoting page for URL: ${url}`);
+        await page.goto(url, { waitUntil: "networkidle2" });
+        return await page.screenshotFile();
+    } catch (error) {
+        console.error("Error screenshoting page:", error);
+        return undefined;
+    } finally {
+        await page.close();
+    }
+}
+
+export async function getPageInfo(url: string): Promise<PageInfo | undefined> {
+    const browser = await getBrowserInstance();
+    const page = extendPage(await browser.newPage());
+    await page.setExtraHTTPHeaders({ Referer: "https://ya.ru/" });
+
+    try {
+        console.log(`Fetching page info for URL: ${url}`);
+        await page.goto(url, { waitUntil: "networkidle2" });
+        return await page.pageInfo();
+    } catch (error) {
+        console.error("Error processing page:", error);
+        return undefined;
+    } finally {
+        await page.close();
+    }
+}
