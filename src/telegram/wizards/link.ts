@@ -1,13 +1,13 @@
 import { Markup, Scenes } from 'telegraf';
 import { fmt, bold } from 'telegraf/format';
-import { getBrowserInstance } from '../../browser/browser';
-import { extendPage } from '../../browser/page';
+import { getPageInfo, getPageScreenshot } from '../../browser/page';
 import { createLink, type CreateLinkRequestParams } from '../../services/links';
 import { createReport, type CreateReportRequestParams } from '../../services/reports';
 import { createMedia, Media, type CreateMediaRequestParams } from '../../services/media';
 import { uploadFile } from '../../utils/uploadFile';
 import { fetchToken } from '../../database/chats';
 import { insertLink } from '../../database/links';
+import { insertClassification, insertPage } from '../../database/pages';
 
 export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     'link',
@@ -71,6 +71,26 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
                 return ctx.scene.leave();
             }
 
+            const pageInfo = await getPageInfo(url);
+            const pageScreenshot = await getPageScreenshot(url);
+            if (!pageInfo || !pageScreenshot) {
+                await ctx.sendChatAction('typing');
+                await ctx.reply('⚠️ Что-то пошло не так.');
+                return ctx.scene.leave();
+            }
+
+            const pageInfoMessage = fmt`
+🔍 ${bold('Информация о странице')}
+
+🔗 ${bold('Ссылка')}: ${pageInfo.url}
+✏️ ${bold('Заголовок')}: ${pageInfo.title}
+📝 ${bold('Описание')}: ${pageInfo.description}
+📊 ${bold('Тип контента')}: ${pageInfo.classifyOut.label}
+            `;
+
+            await ctx.sendChatAction('typing');
+            await ctx.reply(pageInfoMessage, { parse_mode: 'Markdown' });
+
             const mediaParams: CreateMediaRequestParams = {
                 format: Media.PNG
             };
@@ -79,15 +99,7 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
                 throw new Error(mediaResponse.error);
             }
 
-            const puppeteerPage = await getBrowserInstance().then(browser => browser.newPage());
-            const page = extendPage(puppeteerPage);
-
-            await page.goto(url, { waitUntil: 'networkidle2' });
-
-            const screenshot = await page.screenshotFile();
-            const pageInfo = await page.pageInfo();
-
-            await uploadFile(mediaResponse.data.upload, screenshot);
+            await uploadFile(mediaResponse.data.upload, pageScreenshot);
 
             const createRequestParams: CreateReportRequestParams = {
                 url: pageInfo.url,
@@ -101,6 +113,18 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
             if (reportResponse.error) {
                 throw new Error(reportResponse.error);
             }
+
+            const classifyOutId = await insertClassification({
+                label: pageInfo.classifyOut.label,
+                content: pageInfo.classifyOut.content,
+                score: pageInfo.classifyOut.score
+            })
+            await insertPage({
+                title: pageInfo.title,
+                description: pageInfo.description,
+                url: pageInfo.url,
+                classify_out_id: classifyOutId
+            })
 
             await insertLink(chatId, pageInfo.url);
 
