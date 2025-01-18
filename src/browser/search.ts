@@ -1,5 +1,5 @@
 import { getBrowserInstance } from './browser';
-import { extendPage, type ExtendedPage, type PageInfo } from './page';
+import { extendPage, getPageInfo, type ExtendedPage } from './page';
 import { insertClassificationsBatch, insertPagesBatch, type Classification, type Page } from '../database/pages';
 
 async function extractLinks(page: ExtendedPage): Promise<string[]> {
@@ -13,23 +13,6 @@ async function extractLinks(page: ExtendedPage): Promise<string[]> {
             })
             .filter(Boolean) as string[];
     });
-}
-
-async function getPageInfo(url: string): Promise<PageInfo | undefined> {
-    const browser = await getBrowserInstance();
-    const page = extendPage(await browser.newPage());
-
-    try {
-        console.log(`Fetching page info for URL: ${url}`);
-        await page.setExtraHTTPHeaders({ Referer: "https://ya.ru/" });
-        await page.goto(url, { waitUntil: "networkidle2" });
-        return await page.pageInfo();
-    } catch (error) {
-        console.error("Error processing page:", error);
-        return undefined;
-    } finally {
-        await page.close();
-    }
 }
 
 async function navigateToNextPage(page: ExtendedPage): Promise<boolean> {
@@ -46,10 +29,7 @@ async function navigateToNextPage(page: ExtendedPage): Promise<boolean> {
 
 async function collectLinks(query: string, page: ExtendedPage): Promise<string[]> {
     console.log("Starting link collection with query:", query);
-    await page.setExtraHTTPHeaders({ Referer: "https://ya.ru/" });
-    await page.goto("https://google.ru", { waitUntil: "networkidle2" });
-    await page.type("textarea[name='q']", query);
-    await page.keyboard.press("Enter");
+    await page.goto(`https://www.google.ru/search?q=${query}`, { waitUntil: "networkidle2" });
     await page.waitForSelector("#rso a");
 
     let hasNextPage = true;
