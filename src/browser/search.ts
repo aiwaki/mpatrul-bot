@@ -1,16 +1,12 @@
 import { getBrowserInstance } from './browser';
 import { extendPage, getPageInfo, type ExtendedPage } from './page';
-import { insertClassificationsBatch, insertPagesBatch, type Classification, type Page } from '../database/pages';
+import { insertClassificationsBatch, insertPagesBatch, isPageExist, type Classification, type Page } from '../database/pages';
 
 async function extractLinks(page: ExtendedPage): Promise<string[]> {
-    console.log("Extracting links from the page...");
-    return await page.evaluate(() => {
+    return page.evaluate(() => {
         const elements = document.querySelectorAll("#rso .tF2Cxc");
         return Array.from(elements)
-            .map(element => {
-                const linkElement = element.querySelector("a");
-                return linkElement ? linkElement.href : null;
-            })
+            .map(element => element.querySelector("a")?.href)
             .filter(Boolean) as string[];
     });
 }
@@ -18,70 +14,85 @@ async function extractLinks(page: ExtendedPage): Promise<string[]> {
 async function navigateToNextPage(page: ExtendedPage): Promise<boolean> {
     const hasNextPage = await page.evaluate(() => !!document.querySelector("#pnnext"));
     if (hasNextPage) {
-        console.log("Navigating to the next page...");
         await Promise.all([
-            page.click("#pnnext"),
-            page.waitForNavigation({ waitUntil: "networkidle2" })
+            await page.click("#pnnext"),
+            await page.waitForNavigation({ waitUntil: "networkidle2" }),
         ]);
     }
     return hasNextPage;
 }
 
-async function collectLinks(query: string, page: ExtendedPage): Promise<string[]> {
-    console.log("Starting link collection with query:", query);
-    await page.goto(`https://www.google.ru/search?q=${query}`, { waitUntil: "networkidle2" });
-    await page.waitForSelector("#rso a");
+async function checkLinksExistence(links: string[]): Promise<string[]> {
+    const results = await Promise.all(links.map(url => isPageExist(url).then(exists => (exists ? url : null))));
+    return results.filter(Boolean) as string[];
+}
 
+async function collectLinks(query: string, page: ExtendedPage): Promise<string[]> {
+    await page.goto("https://google.ru", { waitUntil: "domcontentloaded" });
+    await page.waitForSelector("textarea[name='q']");
+    await page.type("textarea[name='q']", query);
+    await page.keyboard.press("Enter");
+    await page.waitForNavigation({ waitUntil: "domcontentloaded" })
+
+    const collectedLinks = new Set<string>();
     let hasNextPage = true;
-    let allLinks: string[] = [];
 
     while (hasNextPage) {
         const links = await extractLinks(page);
-        console.log(`Collected ${links.length} links from current page.`);
-        allLinks = allLinks.concat(links);
+        const validLinks = await checkLinksExistence(links);
+        validLinks.forEach(link => collectedLinks.add(link));
         hasNextPage = await navigateToNextPage(page);
     }
 
-    console.log(`Total links collected: ${allLinks.length}`);
-    return allLinks;
+    return Array.from(collectedLinks);
 }
 
 async function processLinks(links: string[]): Promise<[Page[], Classification[]]> {
-    console.log("Processing links...");
-    let pages: Page[] = [];
-    let classifications: Classification[] = [];
+    const results = await Promise.all(
+        links.map(async (link) => {
+            try {
+                const pageInfo = await getPageInfo(link);
+                if (pageInfo) {
+                    return {
+                        page: {
+                            title: pageInfo.title,
+                            description: pageInfo.description,
+                            url: link,
+                        },
+                        classification: {
+                            label: pageInfo.classifyOut.label,
+                            content: pageInfo.classifyOut.content,
+                            score: pageInfo.classifyOut.score,
+                        },
+                    };
+                }
+            } catch (error) {
+                console.error(`Error processing link ${link}:`, error);
+            }
+            return null;
+        })
+    );
 
-    for (const link of links) {
-        const pageInfo = await getPageInfo(link);
-        if (pageInfo) {
-            classifications.push({
-                label: pageInfo.classifyOut.label,
-                content: pageInfo.classifyOut.content,
-                score: pageInfo.classifyOut.score
-            });
-            pages.push({
-                title: pageInfo.title,
-                description: pageInfo.description,
-                url: link,
-            });
-            console.log(`Processed link: ${link}`);
-        } else {
-            console.log(`Failed to process link: ${link}`);
+    const pages: Page[] = [];
+    const classifications: Classification[] = [];
+    for (const result of results) {
+        if (result) {
+            pages.push(result.page);
+            classifications.push(result.classification);
         }
     }
+
     return [pages, classifications];
 }
 
 async function insertData(pages: Page[], classifications: Classification[]) {
-    console.log("Inserting classifications...");
     const classificationIds = await insertClassificationsBatch(classifications);
 
     const updatedPages = pages.map((page, index) => ({
         ...page,
-        classify_out_id: classificationIds[index] || null
+        classify_out_id: classificationIds[index] || null,
     }));
 
-    console.log("Inserting pages...");
     await insertPagesBatch(updatedPages);
 }
 
@@ -90,7 +101,6 @@ export async function searchForPages(query: string) {
     const page = extendPage(await browser.newPage());
 
     try {
-        console.log("Starting search for pages...");
         const links = await collectLinks(query, page);
         const [pages, classifications] = await processLinks(links);
         await insertData(pages, classifications);
