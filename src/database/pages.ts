@@ -79,3 +79,17 @@ export const fetchPagesByKeyword = async (keyword: string): Promise<Page[]> => {
 
     return data as Page[] ?? [];
 };
+
+export const isPageExist = async (url: string): Promise<boolean> => {
+    const { data, error } = await supabase
+        .from('pages')
+        .select('id')
+        .eq('url', url)
+        .single();
+
+    if (error && error.code !== 'PGRST116') {
+        handleError('Error checking if page exists:', error);
+    }
+
+    return data !== null;
+};
