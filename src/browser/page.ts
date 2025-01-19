@@ -1,4 +1,4 @@
-import { Page as PuppeteerPage } from 'puppeteer';
+import { Page as PuppeteerPage } from "rebrowser-puppeteer-core";;
 import { classifyText, type ClassificationOutput } from '../utils/classification';
 import { getBrowserInstance } from './browser';
 
@@ -57,7 +57,7 @@ export async function getPageScreenshot(url: string): Promise<File | undefined> 
 
     try {
         console.log(`Screenshoting page for URL: ${url}`);
-        await page.goto(url, { waitUntil: "networkidle2" });
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 0 });
         return await page.screenshotFile();
     } catch (error) {
         console.error("Error screenshoting page:", error);
@@ -74,7 +74,7 @@ export async function getPageInfo(url: string): Promise<PageInfo | undefined> {
 
     try {
         console.log(`Fetching page info for URL: ${url}`);
-        await page.goto(url, { waitUntil: "networkidle2" });
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 0 });
         return await page.pageInfo();
     } catch (error) {
         console.error("Error processing page:", error);
