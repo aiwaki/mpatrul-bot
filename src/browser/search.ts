@@ -1,6 +1,7 @@
 import { getBrowserInstance } from './browser';
 import { extendPage, getPageInfo, type ExtendedPage } from './page';
 import { insertClassificationsBatch, insertPagesBatch, isPageExist, type Classification, type Page } from '../database/pages';
+import { Cron } from 'croner';
 
 async function extractLinks(page: ExtendedPage): Promise<string[]> {
     return page.evaluate(() => {
@@ -58,6 +59,7 @@ async function processLinks(links: string[]): Promise<[Page[], Classification[]]
                             title: pageInfo.title,
                             description: pageInfo.description,
                             url: link,
+                            classify_out_id: -1,
                         },
                         classification: {
                             label: pageInfo.classifyOut.label,
@@ -90,13 +92,13 @@ async function insertData(pages: Page[], classifications: Classification[]) {
 
     const updatedPages = pages.map((page, index) => ({
         ...page,
-        classify_out_id: classificationIds[index] || null,
+        classify_out_id: classificationIds[index],
     }));
 
     await insertPagesBatch(updatedPages);
 }
 
-export async function searchForPages(query: string) {
+async function searchForPages(query: string) {
     const browser = await getBrowserInstance();
     const page = extendPage(await browser.newPage());
 
@@ -112,4 +114,4 @@ export async function searchForPages(query: string) {
     }
 }
 
-await searchForPages("купить автоцветущие семена конопли для лучших шишек");
+const _searchCron = new Cron('0 * * * *', async () => await searchForPages("купить автоцветущие семена конопли для лучших шишек"));
