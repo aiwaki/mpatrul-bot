@@ -16,10 +16,14 @@ bot.telegram.setMyCommands([
     {
         command: '/link',
         description: 'Проверить ссылку и отправить отчет',
+    },
+    {
+        command: '/verify',
+        description: 'Подтвердить отправку отчета',
     }
 ])
 
-const commands = ["signin", "me", "link"];
+const commands = ["signin", "me", "link", "verify"];
 
 commands.forEach((command) => {
     bot.command(command, async (ctx) => {
