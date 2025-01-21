@@ -27,13 +27,17 @@ export interface Report {
 }
 
 export const createReport = async (
-  params: CreateReportRequestParams, tg_id: number
+  params: CreateReportRequestParams,
+  tg_id: number
 ): Promise<SingleResponse<Report>> => {
-  const { data } = await request<SingleResponse<Report>>({
-    url: `${API.report}/create`,
-    method: "POST",
-    data: params
-  }, tg_id);
+  const { data } = await request<SingleResponse<Report>>(
+    {
+      url: `${API.report}/create`,
+      method: "POST",
+      data: params,
+    },
+    tg_id
+  );
 
   return data;
 };
