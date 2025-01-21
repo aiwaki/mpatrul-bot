@@ -23,12 +23,16 @@ export interface Squad {
 }
 
 export const getMyProfile = async (
-  signal: AbortSignal | undefined, tg_id: number
+  signal: AbortSignal | undefined,
+  tg_id: number
 ): Promise<SingleResponse<Profile>> => {
-  const { data } = await request<SingleResponse<Profile>>({
-    url: `${API.profiles}/me`,
-    signal
-  }, tg_id);
+  const { data } = await request<SingleResponse<Profile>>(
+    {
+      url: `${API.profiles}/me`,
+      signal,
+    },
+    tg_id
+  );
 
   return data;
 };
