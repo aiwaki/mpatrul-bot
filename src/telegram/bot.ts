@@ -1,9 +1,9 @@
-import { bot } from './client'
-import './scenes'
-import './commands'
-import './start'
+import { bot } from "./client";
+import "./scenes";
+import "./commands";
+import "./start";
 
-bot.launch()
+bot.launch();
 
-process.once('SIGINT', () => bot.stop('SIGINT'))
-process.once('SIGTERM', () => bot.stop('SIGTERM'))
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
