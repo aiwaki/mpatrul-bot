@@ -21,7 +21,7 @@ export enum ReportText {
   Colimbine = "Колумбайн или связанные идеологии",
   Cyberbullying = "Кибербуллинг, угрозы или унижения",
   Recruitment = "Вербовка и преступные организации",
-  DiscreditingArmed = "Дискредитация вооруженных сил Российской Федерации"
+  DiscreditingArmed = "Дискредитация вооруженных сил Российской Федерации",
   // ChildPorn = "Детская порнография",
   // Extremism = "Экстремизм",
 }
@@ -48,7 +48,7 @@ export const REPORTS = [
   ReportText.DiscreditingArmed,
   // ReportText.ChildPorn,
   // ReportText.Extremism
-]
+];
 
 export const CONTENTS = [
   {
@@ -152,5 +152,5 @@ export const QUERIES = [
   "скандалы в российской армии 2025",
   "коррупция в вооруженных силах России",
   "негативные отзывы о службе в армии РФ",
-  "проблемы с дисциплиной в российских военных подразделениях"
+  "проблемы с дисциплиной в российских военных подразделениях",
 ];
