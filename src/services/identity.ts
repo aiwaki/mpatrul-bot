@@ -15,13 +15,17 @@ export interface LoginResponseParams {
 }
 
 export const signIn = async (
-  params: SignInRequestParams, tg_id: number
+  params: SignInRequestParams,
+  tg_id: number
 ): Promise<SingleResponse<LoginResponseParams>> => {
-  const { data } = await request<SingleResponse<LoginResponseParams>>({
-    url: `${API.identity}/sign-in`,
-    method: "POST",
-    data: params
-  }, tg_id);
+  const { data } = await request<SingleResponse<LoginResponseParams>>(
+    {
+      url: `${API.identity}/sign-in`,
+      method: "POST",
+      data: params,
+    },
+    tg_id
+  );
 
   return data;
 };
