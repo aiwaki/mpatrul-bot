@@ -18,13 +18,17 @@ export interface CreateMediaResponse {
 }
 
 export const createMedia = async (
-  params: CreateMediaRequestParams, tg_id: number
+  params: CreateMediaRequestParams,
+  tg_id: number
 ): Promise<SingleResponse<CreateMediaResponse>> => {
-  const { data } = await request<SingleResponse<CreateMediaResponse>>({
-    url: `${API.media}/upload`,
-    method: "POST",
-    data: params
-  }, tg_id);
+  const { data } = await request<SingleResponse<CreateMediaResponse>>(
+    {
+      url: `${API.media}/upload`,
+      method: "POST",
+      data: params,
+    },
+    tg_id
+  );
 
   return data;
 };
