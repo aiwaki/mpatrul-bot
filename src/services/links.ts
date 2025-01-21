@@ -15,13 +15,17 @@ export interface CreateLinkResponse {
 }
 
 export const createLink = async (
-  params: CreateLinkRequestParams, tg_id: number
+  params: CreateLinkRequestParams,
+  tg_id: number
 ): Promise<SingleResponse<CreateLinkResponse>> => {
-  const { data } = await request<SingleResponse<CreateLinkResponse>>({
-    url: `${API.link}/create`,
-    method: "POST",
-    data: params
-  }, tg_id);
+  const { data } = await request<SingleResponse<CreateLinkResponse>>(
+    {
+      url: `${API.link}/create`,
+      method: "POST",
+      data: params,
+    },
+    tg_id
+  );
 
   return data;
 };
