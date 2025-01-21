@@ -1,5 +1,11 @@
 import { supabase, handleError, fetchData } from './client';
 
+export enum PageState {
+    Unknown = 'unknown',
+    Reported = 'reported',
+    Hidden = 'hidden'
+}
+
 export interface Classification {
     label: string;
     content: string;
@@ -10,10 +16,11 @@ export interface Page {
     title: string;
     description: string;
     url: string;
-    classify_out_id?: number | null;
+    classify_out_id: number;
+    state?: string;
 }
 
-export const insertClassification = async (classification: Classification): Promise<number | null> => {
+export const insertClassification = async (classification: Classification): Promise<number> => {
     const { data, error } = await supabase
         .from('classifications')
         .insert([classification])
@@ -24,7 +31,7 @@ export const insertClassification = async (classification: Classification): Prom
         handleError('Error inserting classification:', error);
     }
 
-    return data?.id ?? null;
+    return data?.id;
 };
 
 export const insertClassificationsBatch = async (classifications: Classification[]): Promise<number[]> => {
@@ -63,6 +70,33 @@ export const insertPagesBatch = async (pages: Page[]): Promise<number[]> => {
     return data?.map((item) => item.id) ?? [];
 };
 
+export const fetchPages = async (): Promise<Page[]> => {
+    const { data, error } = await supabase
+        .from('pages')
+        .select()
+        .eq('state', PageState.Unknown);
+
+    if (error) {
+        handleError('Error fetching pages:', error);
+    }
+
+    return data as Page[] ?? [];
+};
+
+export const updatePageState = async (
+    url: string,
+    state: PageState
+): Promise<void> => {
+    const { error } = await supabase
+        .from('pages')
+        .update({ state })
+        .eq('url', url);
+
+    if (error) {
+        handleError('Error updating page state:', error);
+    }
+};
+
 export const fetchClassificationsByLabel = async (label: string): Promise<Classification[]> => {
     return await fetchData('classifications', { label }) as Classification[];
 };
@@ -92,4 +126,18 @@ export const isPageExist = async (url: string): Promise<boolean> => {
     }
 
     return data !== null;
+};
+
+export const fetchClassification = async (id: number): Promise<Classification> => {
+    const { data, error } = await supabase
+        .from('classifications')
+        .select()
+        .eq('id', id)
+        .single();
+
+    if (error) {
+        handleError('Error fetching classification:', error);
+    }
+
+    return data as Classification;
 };
