@@ -53,11 +53,10 @@ const getBestClassification = async (title: string, description: string) => {
 export async function getPageScreenshot(url: string): Promise<File | undefined> {
     const browser = await getBrowserInstance();
     const page = extendPage(await browser.newPage());
-    await page.setExtraHTTPHeaders({ Referer: "https://ya.ru/" });
 
     try {
         console.log(`Screenshoting page for URL: ${url}`);
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 0 });
+        await page.goto(url, { referer: "https://ya.ru/", waitUntil: "domcontentloaded", timeout: 0 });
         return await page.screenshotFile();
     } catch (error) {
         console.error("Error screenshoting page:", error);
@@ -70,11 +69,10 @@ export async function getPageScreenshot(url: string): Promise<File | undefined> 
 export async function getPageInfo(url: string): Promise<PageInfo | undefined> {
     const browser = await getBrowserInstance();
     const page = extendPage(await browser.newPage());
-    await page.setExtraHTTPHeaders({ Referer: "https://ya.ru/" });
 
     try {
         console.log(`Fetching page info for URL: ${url}`);
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 0 });
+        await page.goto(url, { referer: "https://ya.ru/", waitUntil: "domcontentloaded", timeout: 0 });
         return await page.pageInfo();
     } catch (error) {
         console.error("Error processing page:", error);
