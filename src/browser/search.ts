@@ -9,6 +9,7 @@ import {
 } from "../database/pages";
 import { Cron } from "croner";
 import { type CreateLinkRequestParams, createLink } from "../services/links";
+import { QUERIES } from "../utils/constants";
 
 async function extractLinks(page: ExtendedPage): Promise<string[]> {
   return page.evaluate(() => {
@@ -46,8 +47,12 @@ async function checkLinksExistence(
       }
       const { data } = linkResponse;
 
-      const exists = data.report || (await isPageExist(url));
-      return exists ? url : null;
+      if (data.report) {
+        return null;
+      }
+
+      const pageExists = await isPageExist(url);
+      return pageExists ? url : null;
     })
   );
 
@@ -148,8 +153,11 @@ async function searchForPages(query: string) {
   }
 }
 
-const _searchCron = new Cron(
-  "0 * * * *",
-  async () =>
-    await searchForPages("купить автоцветущие семена конопли для лучших шишек")
-);
+let queryIndex = 0;
+
+const _searchCron = new Cron("0,30 * * * *", async () => {
+  if (queryIndex < QUERIES.length) {
+    await searchForPages(QUERIES[queryIndex]);
+    queryIndex = (queryIndex + 1) % QUERIES.length;
+  }
+});
