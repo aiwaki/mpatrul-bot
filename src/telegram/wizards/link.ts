@@ -1,20 +1,9 @@
 import { Markup, Scenes } from "telegraf";
-import { fmt, bold } from "telegraf/format";
-import { getPageInfo, getPageScreenshot } from "../../browser/page";
-import { createLink, type CreateLinkRequestParams } from "../../services/links";
-import {
-  createReport,
-  type CreateReportRequestParams,
-} from "../../services/reports";
-import {
-  createMedia,
-  Media,
-  type CreateMediaRequestParams,
-} from "../../services/media";
-import { uploadFile } from "../../utils/uploadFile";
+import { getPageInfo } from "../../browser/page";
 import { fetchToken } from "../../database/chats";
 import { insertLink } from "../../database/links";
 import { insertClassification, insertPage } from "../../database/pages";
+import { sendReport } from "../../utils/sendReport";
 
 export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
   "link",
@@ -53,73 +42,15 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
         return ctx.scene.leave();
       }
 
-      const createLinkParams: CreateLinkRequestParams = { url };
-      const linkResponse = await createLink(createLinkParams, chatId);
-      if (linkResponse.error) {
-        throw new Error(linkResponse.error);
-      }
-      const { data } = linkResponse;
-
-      const message = fmt`
-📄 ${bold("Результаты проверки")}
-
-🔗 ${bold("Ссылка")}: ${data.link.url}
-🔄 ${bold("Количество проверок")}: ${data.count}
-⏱️ ${bold("Время последней проверки")}: ${
-        data.updatedAt ? new Date(data.updatedAt).toLocaleString() : "Никогда"
-      }
-📜 ${bold("Отчет")}: ${data.report ? "✅ Отправлен" : "❌ Не отправлен"}
-            `;
-
-      await ctx.sendChatAction("typing");
-      await ctx.reply(message, { parse_mode: "Markdown" });
-
-      if (data.report) {
-        return ctx.scene.leave();
-      }
-
       const pageInfo = await getPageInfo(url);
-      const pageScreenshot = await getPageScreenshot(url);
-      if (!pageInfo || !pageScreenshot) {
+      if (!pageInfo) {
         await ctx.sendChatAction("typing");
-        await ctx.reply("⚠️ Что-то пошло не так.");
+        await ctx.reply("⚠️ Не удалось получить данные страницы.");
         return ctx.scene.leave();
       }
 
-      const pageInfoMessage = fmt`
-🔍 ${bold("Информация о странице")}
-
-🔗 ${bold("Ссылка")}: ${pageInfo.url}
-✏️ ${bold("Заголовок")}: ${pageInfo.title}
-📝 ${bold("Описание")}: ${pageInfo.description}
-📊 ${bold("Тип контента")}: ${pageInfo.classifyOut.label}
-            `;
-
-      await ctx.sendChatAction("typing");
-      await ctx.reply(pageInfoMessage, { parse_mode: "Markdown" });
-
-      const mediaParams: CreateMediaRequestParams = {
-        format: Media.PNG,
-      };
-      const mediaResponse = await createMedia(mediaParams, chatId);
-      if (mediaResponse.error) {
-        throw new Error(mediaResponse.error);
-      }
-
-      await uploadFile(mediaResponse.data.upload, pageScreenshot);
-
-      const createRequestParams: CreateReportRequestParams = {
-        url: pageInfo.url,
-        content: pageInfo.classifyOut.content,
-        isPersonal: true,
-        isMedia: false,
-        desciption: pageInfo.description,
-        photoId: mediaResponse.data.id,
-      };
-      const reportResponse = await createReport(createRequestParams, chatId);
-      if (reportResponse.error) {
-        throw new Error(reportResponse.error);
-      }
+      await sendReport(chatId, pageInfo);
+      await insertLink(chatId, pageInfo.url);
 
       const classifyOutId = await insertClassification({
         label: pageInfo.classifyOut.label,
@@ -133,20 +64,25 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
         classify_out_id: classifyOutId,
       });
 
-      await insertLink(chatId, pageInfo.url);
-
       await ctx.sendChatAction("typing");
       await ctx.reply("✅ Отчет отправлен.");
       await ctx.scene.leave();
     } catch (error) {
-      console.error(
-        "🚨 Ошибка при проверке ссылки или отправке отчета:",
-        error
-      );
+      if (error instanceof Error) {
+        if (error.message === "Report already exists") {
+          await ctx.sendChatAction("typing");
+          await ctx.reply("✅ Отчет уже существует.");
+          return ctx.scene.leave();
+        }
 
-      await ctx.sendChatAction("typing");
-      await ctx.reply("🚨 Произошла ошибка при получении данных.");
-      await ctx.scene.leave();
+        console.error(
+          "🚨 Ошибка при проверке ссылки или отправке отчета:",
+          error
+        );
+        await ctx.sendChatAction("typing");
+        await ctx.reply("🚨 Произошла ошибка при получении данных.");
+        return ctx.scene.leave();
+      }
     }
   }
 );
