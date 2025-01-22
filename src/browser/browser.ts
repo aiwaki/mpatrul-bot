@@ -11,9 +11,11 @@ export const getBrowserInstance = async (): Promise<Browser> => {
         "--start-maximized",
         "--disable-web-security",
         "--disable-features=SafeBrowsing",
+        "--no-sandbox",
       ],
       turnstile: true,
-      headless: false,
+      headless: true,
+      disableXvfb: false,
       connectOption: {
         defaultViewport: null,
       },
