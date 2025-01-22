@@ -8,42 +8,43 @@ import {
   type Classification,
   type Page,
 } from "../../database/pages";
-import {
-  type CreateMediaRequestParams,
-  Media,
-  createMedia,
-} from "../../services/media";
-import {
-  type CreateReportRequestParams,
-  createReport,
-} from "../../services/reports";
-import { uploadFile } from "../../utils/uploadFile";
-import { getPageScreenshot } from "../../browser/page";
 import { Cron } from "croner";
+import { sendReport } from "../../utils/sendReport";
+import { insertLink } from "../../database/links";
+import type { PageInfo } from "../../browser/page";
+import { CONTEXTS } from "../../utils/constants";
 
-interface PageWithClassification {
-  info: Page;
-  classification: Classification;
+function toPageInfo(page: Page, classification: Classification): PageInfo {
+  return {
+    title: page.title,
+    description: page.description,
+    url: page.url,
+    classifyOut: {
+      label: classification.label,
+      content: CONTEXTS[classification.content],
+      score: classification.score,
+    },
+  };
 }
 
 interface Action {
   chatId: number;
-  page: PageWithClassification;
+  page: PageInfo;
   expiry: Date;
   messageId?: number;
   userMessageId?: number;
 }
 
-let pages: PageWithClassification[] = await getPages();
+let pages: PageInfo[] = await getPages();
 let actions: Action[] = [];
 
 async function getPages() {
   const fetchedPages = await fetchPages();
   return Promise.all(
-    fetchedPages.map(async (page) => ({
-      info: page,
-      classification: await fetchClassification(page.classify_out_id),
-    }))
+    fetchedPages.map(async (page) => {
+      const classification = await fetchClassification(page.classify_out_id);
+      return toPageInfo(page, classification);
+    })
   );
 }
 
@@ -83,18 +84,15 @@ async function cleanupAction(chatId: number, ctx?: Scenes.WizardContext) {
   actions = actions.filter((action) => action.chatId !== chatId);
 }
 
-async function sendPageCard(
-  ctx: Scenes.WizardContext,
-  page: { info: Page; classification: Classification }
-) {
+async function sendPageCard(ctx: Scenes.WizardContext, page: PageInfo) {
   const message = fmt`
 🔍 ${bold("Информация о странице")}
 
-🔗 ${bold("Ссылка")}: ${page.info.url}
-✏️ ${bold("Заголовок")}: ${page.info.title}
-📝 ${bold("Описание")}: ${page.info.description}
-📊 ${bold("Тип контента")}: ${page.classification.label}
-    `;
+🔗 ${bold("Ссылка")}: ${page.url}
+✏️ ${bold("Заголовок")}: ${page.title}
+📝 ${bold("Описание")}: ${page.description}
+📊 ${bold("Тип контента")}: ${page.classifyOut.label}
+  `;
 
   await ctx.sendChatAction("typing");
   const sentMessage = await ctx.reply(
@@ -161,38 +159,25 @@ verifyWizard.action("verify", async (ctx) => {
   }
 
   try {
-    const mediaParams: CreateMediaRequestParams = { format: Media.PNG };
-    const mediaResponse = await createMedia(mediaParams, chatId);
-    if (mediaResponse.error) throw new Error(mediaResponse.error);
+    await sendReport(chatId, action.page);
+    await insertLink(chatId, action.page.url);
 
-    const pageScreenshot = await getPageScreenshot(action.page.info.url);
-    if (!pageScreenshot) {
-      await ctx.sendChatAction("typing");
-      await ctx.reply("⚠️ Что-то пошло не так.");
-      return ctx.scene.leave();
-    }
-
-    await uploadFile(mediaResponse.data.upload, pageScreenshot);
-
-    const createRequestParams: CreateReportRequestParams = {
-      url: action.page.info.url,
-      content: action.page.classification.content,
-      isPersonal: true,
-      isMedia: false,
-      desciption: action.page.info.description,
-      photoId: mediaResponse.data.id,
-    };
-    const reportResponse = await createReport(createRequestParams, chatId);
-    if (reportResponse.error) throw new Error(reportResponse.error);
-
-    updatePageState(action.page.info.url, PageState.Reported);
+    updatePageState(action.page.url, PageState.Reported);
     await cleanupAction(chatId, ctx);
     await ctx.reply("✅ Отчет отправлен.");
   } catch (error) {
-    console.error("🚨 Ошибка при обработке данных:", error);
+    if (error instanceof Error) {
+      if (error.message === "Report already exists") {
+        await ctx.sendChatAction("typing");
+        await ctx.reply("✅ Отчет уже существует.");
+        return ctx.scene.leave();
+      }
 
-    await ctx.sendChatAction("typing");
-    await ctx.reply("⚠️ Ошибка отправки отчета.");
+      console.error("🚨 Ошибка при отправке отчета:", error);
+      await ctx.sendChatAction("typing");
+      await ctx.reply("🚨 Произошла ошибка при отправке отчета.");
+      return ctx.scene.leave();
+    }
   }
   return ctx.wizard.selectStep(0);
 });
@@ -210,7 +195,7 @@ verifyWizard.action("hide", async (ctx) => {
     return ctx.scene.leave();
   }
 
-  updatePageState(action.page.info.url, PageState.Hidden);
+  updatePageState(action.page.url, PageState.Hidden);
   await cleanupAction(chatId, ctx);
   await ctx.reply("👌 Страница исключена из предложений.");
   return ctx.wizard.selectStep(0);
