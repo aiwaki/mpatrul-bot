@@ -13,6 +13,7 @@ import { sendReport } from "../../utils/sendReport";
 import { insertLink } from "../../database/links";
 import type { PageInfo } from "../../browser/page";
 import { CONTEXTS } from "../../utils/constants";
+import { fetchToken } from "../../database/chats";
 
 function toPageInfo(page: Page, classification: Classification): PageInfo {
   return {
@@ -114,6 +115,13 @@ export const verifyWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     if (!chatId) {
       await ctx.sendChatAction("typing");
       await ctx.reply("⚠️ Не удалось определить идентификатор чата.");
+      return ctx.scene.leave();
+    }
+
+    const token = await fetchToken(chatId);
+    if (!token) {
+      await ctx.sendChatAction("typing");
+      await ctx.reply("⚠️ Войдите в аккаунт.");
       return ctx.scene.leave();
     }
 
