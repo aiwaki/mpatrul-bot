@@ -72,3 +72,25 @@ export const getLinkStats = async (
     return { count: 0 };
   }
 };
+
+export const getTopVolunteers = async (
+  limit: number = 5
+): Promise<
+  { inserted_by: number; tg_username: string | null; count: number }[]
+> => {
+  try {
+    const { data, error } = await supabase.rpc("get_top_volunteers", {
+      p_limit: limit,
+    });
+
+    if (error) {
+      handleError("Error fetching top volunteers:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Unexpected error in getTopVolunteers:", error);
+    return [];
+  }
+};
