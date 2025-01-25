@@ -29,9 +29,10 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
       }
 
       const url = ctx.message.text.trim();
-      if (!url) {
+      const urlRegex = /https?:\/\/[^\s]+/;
+      if (!url || !urlRegex.test(url)) {
         await ctx.sendChatAction("typing");
-        await ctx.reply("⚠️ Ссылка не может быть пустой. Попробуйте снова.");
+        await ctx.reply("⚠️ Пожалуйста, отправьте корректную ссылку.");
         return ctx.wizard.back();
       }
 
