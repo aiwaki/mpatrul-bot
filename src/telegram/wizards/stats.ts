@@ -1,6 +1,7 @@
 import { Scenes } from "telegraf";
 import { fmt, bold } from "telegraf/format";
 import { getLinkStats, getTopVolunteers } from "../../database/links";
+import { fetchToken } from "../../database/chats";
 
 export const statsWizard = new Scenes.WizardScene<Scenes.WizardContext>(
   "stats",
@@ -9,6 +10,13 @@ export const statsWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     if (!chatId) {
       await ctx.sendChatAction("typing");
       await ctx.reply("⚠️ Не удалось определить идентификатор чата.");
+      return ctx.scene.leave();
+    }
+
+    const token = await fetchToken(chatId);
+    if (!token) {
+      await ctx.sendChatAction("typing");
+      await ctx.reply("⚠️ Войдите в аккаунт.");
       return ctx.scene.leave();
     }
 
