@@ -1,6 +1,6 @@
 import { Scenes } from "telegraf";
 import { fmt, bold } from "telegraf/format";
-import { getLinkStats } from "../../database/links";
+import { getLinkStats, getTopVolunteers } from "../../database/links";
 
 export const statsWizard = new Scenes.WizardScene<Scenes.WizardContext>(
   "stats",
@@ -13,13 +13,28 @@ export const statsWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     }
 
     try {
-      const [allTimeStats, dailyStats, weeklyStats, monthlyStats] =
-        await Promise.all([
-          getLinkStats("all"),
-          getLinkStats("day"),
-          getLinkStats("week"),
-          getLinkStats("month"),
-        ]);
+      const [
+        allTimeStats,
+        dailyStats,
+        weeklyStats,
+        monthlyStats,
+        topVolunteers,
+      ] = await Promise.all([
+        getLinkStats("all"),
+        getLinkStats("day"),
+        getLinkStats("week"),
+        getLinkStats("month"),
+        getTopVolunteers(5),
+      ]);
+
+      const topVolunteersText = topVolunteers
+        .map((volunteer, index) => {
+          const username = volunteer.tg_username
+            ? `@${volunteer.tg_username}`
+            : `ID: ${volunteer.inserted_by}`;
+          return `${index + 1}. ${username} — ${volunteer.count}`;
+        })
+        .join("\n");
 
       const message = fmt`
 📊 ${bold("Статистика всех ссылок")}
@@ -28,6 +43,9 @@ export const statsWizard = new Scenes.WizardScene<Scenes.WizardContext>(
 🔥 ${bold("День")}: ${dailyStats.count}
 ⚡ ${bold("Неделя")}: ${weeklyStats.count}
 🌟 ${bold("Месяц")}: ${monthlyStats.count}
+
+🏆 ${bold("ТОП волонтеров по количеству ссылок")}
+${topVolunteersText || "Нет данных"}
       `;
 
       await ctx.sendChatAction("typing");
@@ -36,7 +54,7 @@ export const statsWizard = new Scenes.WizardScene<Scenes.WizardContext>(
       console.error("🚨 Ошибка при получении статистики ссылок:", error);
 
       await ctx.sendChatAction("typing");
-      await ctx.reply("🚨 Произошла ошибка при получении данных.");
+      return ctx.reply("🚨 Произошла ошибка при получении данных.");
     }
 
     return ctx.scene.leave();
