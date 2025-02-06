@@ -59,10 +59,15 @@ ${topVolunteersText || "Нет данных"}
       await ctx.sendChatAction("typing");
       await ctx.reply(message);
     } catch (error) {
-      console.error("🚨 Ошибка при получении статистики ссылок:", error);
+      if (error instanceof Error) {
+        console.error(
+          "🚨 Ошибка при получении статистики ссылок:",
+          error.message
+        );
 
-      await ctx.sendChatAction("typing");
-      return ctx.reply("🚨 Произошла ошибка при получении данных.");
+        await ctx.sendChatAction("typing");
+        return ctx.reply("🚨 Произошла ошибка при получении данных.");
+      }
     }
 
     return ctx.scene.leave();
