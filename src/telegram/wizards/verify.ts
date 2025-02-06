@@ -70,15 +70,21 @@ async function cleanupAction(chatId: number, ctx?: Scenes.WizardContext) {
     if (ctx && action.messageId) {
       try {
         await ctx.telegram.deleteMessage(chatId, action.messageId);
-      } catch (err) {
-        console.error(`Ошибка удаления сообщения бота: ${err}`);
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error(`Ошибка удаления сообщения бота: ${error.message}`);
+        }
       }
     }
     if (ctx && action.userMessageId) {
       try {
         await ctx.telegram.deleteMessage(chatId, action.userMessageId);
-      } catch (err) {
-        console.error(`Ошибка удаления сообщения пользователя: ${err}`);
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error(
+            `Ошибка удаления сообщения пользователя: ${error.message}`
+          );
+        }
       }
     }
   }
@@ -181,7 +187,7 @@ verifyWizard.action("verify", async (ctx) => {
         return ctx.scene.leave();
       }
 
-      console.error("🚨 Ошибка при отправке отчета:", error);
+      console.error("🚨 Ошибка при отправке отчета:", error.message);
       await ctx.sendChatAction("typing");
       await ctx.reply("🚨 Произошла ошибка при отправке отчета.");
       return ctx.scene.leave();
