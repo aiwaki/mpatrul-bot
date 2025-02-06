@@ -12,7 +12,9 @@ export const batchInsertLinks = async (
     }
     console.log(`Inserted ${urls.length} links for chat ${tg_id}.`);
   } catch (error) {
-    console.error("Unexpected error in batchInsertLinks:", error);
+    if (error instanceof Error) {
+      console.error("Unexpected error in batchInsertLinks:", error.message);
+    }
   }
 };
 
@@ -30,7 +32,9 @@ export const insertLink = async (tg_id: number, url: string): Promise<void> => {
     }
     console.log(`Inserted link for chat ${tg_id}.`);
   } catch (error) {
-    console.error("Unexpected error in insertLinks:", error);
+    if (error instanceof Error) {
+      console.error("Unexpected error in insertLinks:", error.message);
+    }
   }
 };
 
@@ -68,7 +72,9 @@ export const getLinkStats = async (
     }
     return { count: count || 0 };
   } catch (error) {
-    console.error("Unexpected error in getLinkStats:", error);
+    if (error instanceof Error) {
+      console.error("Unexpected error in getLinkStats:", error.message);
+    }
     return { count: 0 };
   }
 };
@@ -90,7 +96,9 @@ export const getTopVolunteers = async (
 
     return data || [];
   } catch (error) {
-    console.error("Unexpected error in getTopVolunteers:", error);
+    if (error instanceof Error) {
+      console.error("Unexpected error in getTopVolunteers:", error.message);
+    }
     return [];
   }
 };
