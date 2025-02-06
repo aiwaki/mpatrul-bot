@@ -108,7 +108,9 @@ async function processLinks(
           };
         }
       } catch (error) {
-        console.error(`Error processing link ${link}:`, error);
+        if (error instanceof Error) {
+          console.error(`Error processing link ${link}:`, error.message);
+        }
       }
       return null;
     })
@@ -147,7 +149,9 @@ async function searchForPages(query: string) {
     await insertData(pages, classifications);
     console.log("Search completed successfully.");
   } catch (error) {
-    console.error("Error during page search:", error);
+    if (error instanceof Error) {
+      console.error("Error during page search:", error.message);
+    }
   } finally {
     await page.close();
   }
