@@ -30,12 +30,17 @@ export const extendPage = (page: PuppeteerPage): ExtendedPage => {
     const title = await this.title();
     let description =
       (await this.$eval("meta[name='description']", (el) =>
-        el.getAttribute("content")
+        el.getAttribute("content")?.trim()
       ).catch(() => null)) || null;
 
     const classifyOut = await getBestClassification(title, description);
     if (description === null) {
       description = classifyOut.label;
+    } else {
+      description =
+        description.length > 100
+          ? description.substring(0, 100) + "..."
+          : description;
     }
 
     return {
