@@ -72,7 +72,9 @@ export async function getPageScreenshot(
     });
     return await page.screenshotFile();
   } catch (error) {
-    console.error("Error screenshoting page:", error);
+    if (error instanceof Error) {
+      console.error("Error screenshoting page:", error.message);
+    }
     return undefined;
   } finally {
     await page.close();
@@ -92,7 +94,9 @@ export async function getPageInfo(url: string): Promise<PageInfo | undefined> {
     });
     return await page.pageInfo();
   } catch (error) {
-    console.error("Error processing page:", error);
+    if (error instanceof Error) {
+      console.error("Error processing page:", error.message);
+    }
     return undefined;
   } finally {
     await page.close();
