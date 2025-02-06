@@ -34,7 +34,9 @@ export const insertChat = async (chat: Chat): Promise<void> => {
     }
     console.log(`Chat ${chat.id} inserted successfully.`);
   } catch (error) {
-    console.error("Unexpected error in insertChat:", error);
+    if (error instanceof Error) {
+      console.error("Unexpected error in insertChat:", error.message);
+    }
   }
 };
 
