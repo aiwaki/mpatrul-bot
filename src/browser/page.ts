@@ -28,11 +28,15 @@ export const extendPage = (page: PuppeteerPage): ExtendedPage => {
   (page as ExtendedPage).pageInfo = async function (): Promise<PageInfo> {
     const url = this.url();
     const title = await this.title();
-    const description =
+    let description =
       (await this.$eval("meta[name='description']", (el) =>
         el.getAttribute("content")
-      ).catch(() => null)) || "Описание не найдено.";
+      ).catch(() => null)) || null;
+
     const classifyOut = await getBestClassification(title, description);
+    if (description === null) {
+      description = classifyOut.label;
+    }
 
     return {
       url,
@@ -45,9 +49,12 @@ export const extendPage = (page: PuppeteerPage): ExtendedPage => {
   return page as ExtendedPage;
 };
 
-const getBestClassification = async (title: string, description: string) => {
+const getBestClassification = async (
+  title: string,
+  description: string | null
+) => {
   const titleResult = await classifyText(title);
-  if (titleResult.score >= 0.4) {
+  if (titleResult.score >= 0.4 || !description) {
     return titleResult;
   }
 
