@@ -48,11 +48,16 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
         ])
       );
     } catch (error) {
-      console.error("🚨 Неожиданная ошибка во время процесса входа:", error);
+      if (error instanceof Error) {
+        console.error(
+          "🚨 Неожиданная ошибка во время процесса входа:",
+          error.message
+        );
 
-      await ctx.sendChatAction("typing");
-      await ctx.reply("❌ Произошла неожиданная ошибка. Попробуйте снова.");
-      return ctx.scene.leave();
+        await ctx.sendChatAction("typing");
+        await ctx.reply("❌ Произошла неожиданная ошибка. Попробуйте снова.");
+        return ctx.scene.leave();
+      }
     }
   },
   async (ctx) => {
@@ -124,10 +129,12 @@ export const signinWizard = new Scenes.WizardScene<Scenes.WizardContext>(
       await ctx.sendChatAction("typing");
       await ctx.reply("✅ Вход выполнен успешно!");
     } catch (error) {
-      console.error("🚨 Ошибка при выполнении входа:", error);
+      if (error instanceof Error) {
+        console.error("🚨 Ошибка при выполнении входа:", error.message);
 
-      await ctx.sendChatAction("typing");
-      await ctx.reply("❌ Произошла ошибка при входе. Попробуйте снова.");
+        await ctx.sendChatAction("typing");
+        await ctx.reply("❌ Произошла ошибка при входе. Попробуйте снова.");
+      }
     }
 
     return ctx.scene.leave();
