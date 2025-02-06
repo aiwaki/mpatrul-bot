@@ -78,7 +78,7 @@ export const linkWizard = new Scenes.WizardScene<Scenes.WizardContext>(
 
         console.error(
           "🚨 Ошибка при проверке ссылки или отправке отчета:",
-          error
+          error.message
         );
         await ctx.sendChatAction("typing");
         await ctx.reply("🚨 Произошла ошибка при получении данных.");
