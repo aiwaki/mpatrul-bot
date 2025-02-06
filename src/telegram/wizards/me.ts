@@ -40,10 +40,15 @@ export const meWizard = new Scenes.WizardScene<Scenes.WizardContext>(
       await ctx.sendChatAction("typing");
       await ctx.reply(message);
     } catch (error) {
-      console.error("🚨 Ошибка при получении карточки волонтера:", error);
+      if (error instanceof Error) {
+        console.error(
+          "🚨 Ошибка при получении карточки волонтера:",
+          error.message
+        );
 
-      await ctx.sendChatAction("typing");
-      await ctx.reply("🚨 Произошла ошибка при получении данных.");
+        await ctx.sendChatAction("typing");
+        await ctx.reply("🚨 Произошла ошибка при получении данных.");
+      }
     }
 
     return ctx.scene.leave();
